@@ -2,14 +2,13 @@
 
 import { Mail } from 'lucide-react';
 
-/** Icône Agent IA (Sparkles style) - gradient violet/rose ou blanc si white */
+/** Icône Agent IA (hub neural) - nœud central relié aux connexions */
 export function IconAgentIA({
   className,
   size = 24,
   white = false,
 }: { className?: string; size?: number; white?: boolean }) {
-  const fill = white ? 'currentColor' : 'url(#agent-grad)';
-  const stroke = white ? 'currentColor' : 'url(#agent-grad)';
+  const color = white ? 'currentColor' : 'url(#agent-grad)';
   return (
     <svg
       width={size}
@@ -29,13 +28,28 @@ export function IconAgentIA({
           </linearGradient>
         </defs>
       )}
-      <path
-        d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2zM5 16l1 3 3-1-1-3-3 1zm14 0l-1 3-3-1 1-3 3 1zM12 18l.75 2.25L15 21l-2.25-.75L12 18l-.75 2.25L9 21l2.25-.75L12 18z"
-        fill={fill}
-        stroke={stroke}
-        strokeWidth="0.5"
-        strokeLinejoin="round"
-      />
+      <g stroke={color} strokeWidth="1.2" strokeLinecap="round">
+        <line x1="12" y1="12" x2="7" y2="7" />
+        <line x1="12" y1="12" x2="17" y2="7" />
+        <line x1="12" y1="12" x2="17" y2="17" />
+        <line x1="12" y1="12" x2="7" y2="17" />
+        <line x1="12" y1="12" x2="12" y2="5" />
+        <line x1="12" y1="12" x2="19" y2="12" />
+        <line x1="12" y1="12" x2="12" y2="19" />
+        <line x1="12" y1="12" x2="5" y2="12" />
+      </g>
+      <g fill={color}>
+        <circle cx="12" cy="5" r="1.4" />
+        <circle cx="19" cy="12" r="1.4" />
+        <circle cx="12" cy="19" r="1.4" />
+        <circle cx="5" cy="12" r="1.4" />
+        <circle cx="7" cy="7" r="1.2" />
+        <circle cx="17" cy="7" r="1.2" />
+        <circle cx="17" cy="17" r="1.2" />
+        <circle cx="7" cy="17" r="1.2" />
+      </g>
+      <circle cx="12" cy="12" r="3.5" fill={color} opacity={white ? 1 : 0.95} />
+      <circle cx="12" cy="12" r="2" fill="white" opacity={0.9} />
     </svg>
   );
 }

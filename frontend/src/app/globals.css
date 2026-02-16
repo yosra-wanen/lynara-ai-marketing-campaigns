@@ -120,3 +120,20 @@ body::before {
 .animate-on-scroll-delay-3 { transition-delay: 0.3s; }
 .animate-on-scroll-delay-4 { transition-delay: 0.4s; }
 .animate-on-scroll-delay-5 { transition-delay: 0.5s; }
+
+/* Diagramme hero : lignes qui se tracent + points qui pulsent */
+@keyframes diagram-line-draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes diagram-dot-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.7; }
+}
+.diagram-line {
+  stroke-dasharray: 140;
+  stroke-dashoffset: 140;
+  animation: diagram-line-draw 0.8s ease-out forwards;
+}
+.diagram-dot {
+  animation: diagram-dot-pulse 2s ease-in-out infinite;
+}

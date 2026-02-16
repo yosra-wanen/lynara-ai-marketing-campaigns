@@ -93,7 +93,8 @@ export function HeroFloatingCards() {
               fill="none"
               stroke="rgb(203 213 225)"
               strokeWidth="1.5"
-              className="dark:stroke-gray-500"
+              className="diagram-line dark:stroke-gray-500"
+              style={{ animationDelay: `${i * 0.12}s` }}
             />
           ))}
           {nodePositionsPct.map(([px, py], i) => (
@@ -103,27 +104,31 @@ export function HeroFloatingCards() {
               cx={(px / 100) * 320}
               cy={(py / 100) * 200}
               fill="#A079FF"
-              className="dark:fill-[#B394FF]"
+              className="diagram-dot dark:fill-[#B394FF]"
+              style={{ animationDelay: `${0.5 + i * 0.15}s` }}
             />
           ))}
         </svg>
 
-        {cards.map(({ id, label, bg, logo, leftPct, topPct, delay }) => (
-          <div
-            key={id}
-            className="absolute flex h-[18%] w-[18%] max-h-20 max-w-20 min-h-[52px] min-w-[52px] items-center justify-center rounded-2xl shadow-lg transition-shadow hover:shadow-xl dark:shadow-gray-900/30"
-            style={{
-              left: `${leftPct}%`,
-              top: `${topPct}%`,
-              animation: 'float 3s ease-in-out infinite',
-              animationDelay: delay,
-            }}
-          >
-            <div className={`flex items-center justify-center rounded-2xl h-full w-full text-white ${bg}`}>
-              <LogoContent logo={logo} />
+        {cards.map(({ id, label, bg, logo, leftPct, topPct, delay }) => {
+          const isCenterAI = id === '3';
+          return (
+            <div
+              key={id}
+              className="absolute flex h-[18%] w-[18%] max-h-20 max-w-20 min-h-[52px] min-w-[52px] items-center justify-center rounded-2xl shadow-lg transition-shadow hover:shadow-xl dark:shadow-gray-900/30"
+              style={{
+                left: `${leftPct}%`,
+                top: `${topPct}%`,
+                animation: isCenterAI ? 'float 3s ease-in-out infinite, diagram-pulse 2.5s ease-in-out infinite' : `float 3s ease-in-out infinite`,
+                animationDelay: delay,
+              }}
+            >
+              <div className={`flex items-center justify-center rounded-2xl h-full w-full text-white ${bg} ${isCenterAI ? 'ring-2 ring-white/30 ring-offset-2 ring-offset-transparent' : ''}`}>
+                <LogoContent logo={logo} />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

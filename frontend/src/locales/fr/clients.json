@@ -1,0 +1,11 @@
+{
+  "title": "Clients",
+  "subtitle": "Consultez la liste des clients les plus récents !",
+  "addClient": "Ajouter un client",
+  "addManual": "+ Add Manual",
+  "generateWithAI": "Generate with AI",
+  "clientName": "Nom du client",
+  "contactName": "Contact",
+  "email": "Email",
+  "description": "Description"
+}

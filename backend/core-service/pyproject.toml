@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lynara-campaign-core-service"
+version = "1.0.0"
+description = "Lynara Campaign Core - Auth, OCR, logique métier"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "supabase>=2.0.0",
+    "pytesseract>=0.3.10",
+    "Pillow>=10.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "python-multipart>=0.0.9",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

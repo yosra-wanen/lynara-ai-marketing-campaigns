@@ -1,0 +1,19 @@
+# Lynara Campaign Core Service - Auth, OCR, logique métier
+# Python >= 3.11
+
+# Web Framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+
+# Supabase (Auth, DB)
+supabase>=2.0.0
+
+# OCR & Vision
+pytesseract>=0.3.10
+Pillow>=10.0.0
+
+# Validation & Config
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
+python-multipart>=0.0.9

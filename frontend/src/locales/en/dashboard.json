@@ -1,0 +1,13 @@
+{
+  "title": "Generate clients with AI",
+  "description": "Add a brief description or keywords that summarize your email. For best results, select the language, campaign type and tone.",
+  "templateLabel": "Template descriptions",
+  "placeholder": "Ask anything you want to know...",
+  "suggest": "Suggest pro..",
+  "uploadImage": "Upload image",
+  "addAttachment": "Add attachment",
+  "generateWithAI": "Generate with AI",
+  "activeCampaigns": "Active campaigns",
+  "leads": "Leads",
+  "conversionRate": "Conversion rate"
+}

@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200;0,300;0,400;0,600;0,700;0,800;1,400;1,600;1,700&display=swap');
+
+:root {
+  /* Design System - Minimalist & Vibrant (Instagram inspired) */
+  --font-nunito: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+  --color-primary: #111827;
+  --color-secondary: #E1306C;
+  --color-text-primary: #111827;
+  --color-text-secondary: #4B5563;
+  --color-text-muted: #9CA3AF;
+  --radius-card: 24px;
+  --radius-button: 12px;
+  --radius-input: 12px;
+  --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  --shadow-card-hover: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  --shadow-button: 0 4px 14px 0 rgba(193, 53, 132, 0.3);
+
+  /* Backgrounds & Gradients */
+  --bg-page: #FFFFFF;
+  --bg-card: #FFFFFF;
+  
+  --gradient-page: #FFFFFF;
+  --gradient-card: #FFFFFF;
+  --gradient-sidebar: #FFFFFF;
+  --gradient-header: #FFFFFF;
+  --gradient-active-nav: #F3F4F6;
+  /* Bouton primary = dégradé noir raffiné (4 stops) */
+  --gradient-button-primary: linear-gradient(135deg, #374151 0%, #1F2937 38%, #111827 70%, #030712 100%);
+  --gradient-button-primary-hover: linear-gradient(135deg, #4B5563 0%, #374151 38%, #1F2937 70%, #111827 100%);
+  /* Bouton accent / coloré = dégradé violet (#a079ff et dérivés) */
+  --gradient-button-colored: linear-gradient(120deg, #6D3FEB 0%, #7C4DFF 25%, #A079FF 50%, #B394FF 75%, #C4A8FF 100%);
+  --gradient-button-colored-hover: linear-gradient(120deg, #5B2ED9 0%, #6D3FEB 25%, #8B5FF7 50%, #A079FF 75%, #B394FF 100%);
+  --gradient-logo: linear-gradient(135deg, #111827 0%, #000000 100%);
+  --gradient-accent: linear-gradient(120deg, #6D3FEB 0%, #7C4DFF 25%, #A079FF 50%, #B394FF 75%, #C4A8FF 100%);
+  --gradient-crm: linear-gradient(135deg, #8B5FF7 0%, #A079FF 100%);
+  --gradient-catalogue: linear-gradient(135deg, #F59E0B 0%, #F97316 100%);
+  --gradient-ai-circle: linear-gradient(180deg, #6D3FEB 0%, #8B5FF7 35%, #A079FF 65%, #C4A8FF 100%);
+  --gradient-progress: linear-gradient(90deg, #9EB83A 0%, #B5C94A 35%, #DCE875 70%, #EEF49E 100%);
+  --color-badge-accent: #8B5FF7;
+  --color-nav-active-bg: #DCE875;
+  --color-tab-active-bg: #A079FF;
+  --color-logo-accent: #A079FF;
+  --color-checkbox-checked: #A079FF;
+  --color-bg-page-tint: #FBFCF8;
+  --color-border: #F3F4F6;
+}
+
+.dark {
+  --color-text-primary: #F9FAFB;
+  --color-text-secondary: #D1D5DB;
+  --color-text-muted: #9CA3AF;
+  --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+  
+  --bg-page: #000000;
+  --bg-card: #121212;
+
+  --gradient-page: #000000;
+  --gradient-card: #121212;
+  --gradient-sidebar: #000000;
+  --gradient-header: #000000;
+  --gradient-active-nav: #1F2937;
+  --gradient-button-primary: linear-gradient(135deg, #4B5563 0%, #374151 38%, #1F2937 70%, #111827 100%);
+  --gradient-button-primary-hover: linear-gradient(135deg, #6B7280 0%, #4B5563 38%, #374151 70%, #1F2937 100%);
+  --gradient-button-colored: linear-gradient(120deg, #5B2ED9 0%, #6D3FEB 25%, #8B5FF7 50%, #A079FF 75%, #B394FF 100%);
+  --gradient-button-colored-hover: linear-gradient(120deg, #4A25B8 0%, #5B2ED9 25%, #6D3FEB 50%, #8B5FF7 75%, #A079FF 100%);
+  --gradient-crm: linear-gradient(135deg, #8B5FF7 0%, #A079FF 100%);
+  --gradient-catalogue: linear-gradient(135deg, #F59E0B 0%, #F97316 100%);
+  --gradient-ai-circle: linear-gradient(180deg, #5B2ED9 0%, #6D3FEB 35%, #A079FF 65%, #B394FF 100%);
+  --gradient-progress: linear-gradient(90deg, #7A9A2E 0%, #9EB83A 40%, #DCE875 100%);
+  --color-badge-accent: #A079FF;
+  --color-nav-active-bg: #B5C94A;
+  --color-tab-active-bg: #A079FF;
+  --color-logo-accent: #B394FF;
+  --color-checkbox-checked: #A079FF;
+  --color-bg-page-tint: #0D0F0A;
+  --color-border: #262626;
+}
+
+body {
+  font-family: var(--font-nunito);
+  background: var(--bg-page);
+  color: var(--color-text-primary);
+}
+
+/* Touche artistique - Halo vibrant très subtil */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    circle at 80% 10%,
+    rgba(253, 29, 29, 0.03) 0%,
+    transparent 40%
+  ),
+  radial-gradient(
+    circle at 20% 90%,
+    rgba(131, 58, 180, 0.03) 0%,
+    transparent 40%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Scroll-reveal: initial state when not in view */
+.animate-on-scroll {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+.animate-on-scroll.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.animate-on-scroll-delay-1 { transition-delay: 0.1s; }
+.animate-on-scroll-delay-2 { transition-delay: 0.2s; }
+.animate-on-scroll-delay-3 { transition-delay: 0.3s; }
+.animate-on-scroll-delay-4 { transition-delay: 0.4s; }
+.animate-on-scroll-delay-5 { transition-delay: 0.5s; }

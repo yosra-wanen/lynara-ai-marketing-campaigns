@@ -32,22 +32,18 @@ L'application est structurée autour de deux espaces principaux et d'une gestion
 Le Dashboard est divisé en **deux sections (modules)** distinctes, accessibles via un commutateur dans la **Navbar** :
 
 *   **🎨 Section CRM**
-    *   **Thème** : Accents Violet / Rose (Style Instagram)
     *   **Fonctionnalités** : Dashboard, Clients, Contacts, Propositions, Contrats, Planning, Formulaires.
     *   **Objectif** : Gestion de la relation client et des ventes.
 
 *   **🛍️ Section Catalogue**
-    *   **Thème** : Accents Orange / Jaune (Style Instagram)
     *   **Fonctionnalités** : Dashboard, Services (Produits), Comptabilité, Rapports, Automatisations, Paramètres.
     *   **Objectif** : Gestion de l'offre, des produits et de l'administratif.
 
 La **Sidebar** est contextuelle et change dynamiquement selon la section active.
 
 ### 3. Design System
-*   **Style Minimaliste** : Fond 100% blanc, texte sombre, interface épurée.
-*   **Boutons** : Dégradé noir (Black Gradient) pour les actions principales.
-*   **Accents** : Touches de couleurs vives "Instagram" (Violet, Rose, Orange, Jaune) pour différencier les sections et les états actifs.
-*   **Pas de Vert** : La couleur verte a été retirée au profit de cette nouvelle palette.
+*   Style minimaliste, fond blanc, texte sombre.
+*   Constantes partagées (typo, formes, espacements) dans `frontend/src/lib/design-system/`.
 
 ---
 
@@ -95,7 +91,7 @@ lynara-campaign/
 │   │   │   └── ui/              # Boutons, Cards, Inputs, etc.
 │   │   ├── providers/           # Contextes (Theme, I18n, Section)
 │   │   └── lib/
-│   │       └── design-system/   # Constantes (couleurs, typo, formes)
+│   │       └── design-system/   # Constantes (typo, formes, espacements)
 │   └── package.json
 │
 ├── backend/                     # Microservices Back (FastAPI)
@@ -169,65 +165,55 @@ cd backend/core-service && pip install -r requirements.txt
 
 ## 🚀 Lancer les microservices
 
-### 1. Lancer Redis (obligatoire pour Celery)
+Chaque microservice peut être lancé **séparément**. En développement, on utilise en général le frontend dans un terminal et le backend dans un ou plusieurs autres.
 
-Redis est requis pour le service AI Orchestration (Celery).
+### Frontend
 
-**Option A : Avec Makefile (Docker)**
+```bash
+cd frontend && npm run dev
+```
+
+Ou depuis la racine : `make dev-front`
+
+Le frontend est disponible sur **http://localhost:3000**.
+
+### Backend
+
+**Lancer tous les microservices backend** (API Gateway, Core Service, AI Orchestration) dans un seul terminal :
+
+```bash
+make start
+```
+
+**Lancer un seul microservice** (un terminal par service) :
+
+| Commande | Service | Port |
+|----------|---------|------|
+| `make dev-api` | API Gateway | 3001 |
+| `make dev-core` | Core Service | 8001 |
+| `make dev-ai` | AI Orchestration | 8000 |
+
+L’API Gateway (3001) est le point d’entrée utilisé par le frontend ; Core et AI sont appelés par l’API Gateway.
+
+### Redis (pour Celery / AI)
+
+Requis si vous utilisez les tâches asynchrones (Celery).
 
 ```bash
 make redis
 ```
 
-**Option B : Docker manuel**
+Ou Docker : `docker run -d -p 6379:6379 --name lynara-redis redis:7-alpine`
 
-```bash
-docker run -d -p 6379:6379 --name lynara-redis redis:7-alpine
-```
+Vérifier : `redis-cli ping` → `PONG`
 
-**Option C : Installation locale**
-
-- **macOS** : `brew install redis && brew services start redis`
-- **Ubuntu** : `sudo apt install redis-server && sudo systemctl start redis`
-
-Vérifier : `redis-cli ping` → doit retourner `PONG`
-
----
-
-### 2. Lancer les microservices (terminaux séparés)
-
-Ouvrir **5 terminaux** (ou 4 si Celery non utilisé) :
-
-| Terminal | Commande | Service | Port |
-|----------|----------|---------|------|
-| 1 | `make dev-front` | Frontend | 3000 |
-| 2 | `make dev-api` | API Gateway | 3001 |
-| 3 | `make dev-ai` | AI Orchestration | 8000 |
-| 4 | `make dev-core` | Core Service | 8001 |
-| 5 | `make dev-celery` | Celery Worker | - |
-
-**Ordre recommandé :** Redis → API Gateway, Core, AI → Frontend → Celery (optionnel)
-
----
-
-### 3. Lancer Celery (optionnel)
-
-Celery exécute les tâches asynchrones (planification campagnes, etc.). **Redis doit être démarré avant.**
+### Celery (optionnel)
 
 ```bash
 make dev-celery
 ```
 
-Ou manuellement :
-```bash
-cd backend/ai-orchestration && celery -A app.worker worker -l info
-```
-
----
-
-### 4. Lancer avec Docker Compose (tous les services)
-
-Alternative : lancer tout en une commande (PostgreSQL, Redis, tous les microservices, Celery) :
+### Docker Compose (tous les services)
 
 ```bash
 make up
@@ -263,16 +249,7 @@ Arrêter : `make down`
 
 ## 📦 Design System
 
-Bibliothèque de constantes dans `frontend/src/lib/design-system/` :
-
-- **Couleurs** : palette primaire (Noir), secondaire (Instagram Gradients), sémantiques
-- **Typographie** : Nunito
-- **Formes** : border-radius 24px/12px, box-shadow soft
-- **Breakpoints** : responsive
-
-```ts
-import { colors, typography, borderRadius } from '@/lib/design-system';
-```
+Constantes partagées dans `frontend/src/lib/design-system/` (typo, formes, espacements, breakpoints). Import : `import { typography, borderRadius } from '@/lib/design-system';`
 
 ---
 

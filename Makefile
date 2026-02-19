@@ -1,26 +1,32 @@
 # Lynara Campaign - Plateforme de campagnes marketing multicanales
 # Makefile pour le développement et le déploiement
+# Sur macOS/Linux, l'interpréteur est souvent python3
+PYTHON := $(shell command -v python3 2>/dev/null || command -v python 2>/dev/null)
+ifeq ($(PYTHON),)
+PYTHON := python3
+endif
 
-.PHONY: help install install-frontend install-backend dev redis build up down logs clean
+.PHONY: help install install-frontend install-backend dev redis start build up down logs clean
 
 # Default target
 help:
 	@echo "Lynara Campaign - Commandes disponibles:"
-	@echo "  make install         - Installer toutes les dépendances (front + back)"
+	@echo "  make install          - Installer toutes les dépendances (front + back)"
 	@echo "  make install-frontend - Installer uniquement le frontend"
 	@echo "  make install-backend  - Installer uniquement le backend"
-	@echo "  make redis          - Lancer Redis (Docker)"
-	@echo "  make dev         - Lancer en mode développement (front + back)"
-	@echo "  make dev-front   - Lancer le frontend Next.js"
-	@echo "  make dev-api     - Lancer l'API Gateway FastAPI"
-	@echo "  make dev-ai      - Lancer le service AI FastAPI"
-	@echo "  make dev-core    - Lancer le Core Service (Auth, OCR)"
-	@echo "  make dev-celery  - Lancer Celery worker"
-	@echo "  make build       - Build Docker"
-	@echo "  make up          - Démarrer les services Docker"
-	@echo "  make down        - Arrêter les services Docker"
-	@echo "  make logs        - Voir les logs Docker"
-	@echo "  make clean       - Nettoyer les build artifacts"
+	@echo "  make redis            - Lancer Redis (Docker)"
+	@echo "  make start            - Démarrer tous les microservices backend (API Gateway, Core, AI)"
+	@echo "  make dev              - Affiche comment lancer front + back en terminaux séparés"
+	@echo "  make dev-front        - Lancer le frontend Next.js (ou: cd frontend && npm run dev)"
+	@echo "  make dev-api          - Lancer uniquement l'API Gateway (port 3001)"
+	@echo "  make dev-ai           - Lancer uniquement le service AI (port 8000)"
+	@echo "  make dev-core         - Lancer uniquement le Core Service (port 8001)"
+	@echo "  make dev-celery       - Lancer Celery worker"
+	@echo "  make build            - Build Docker"
+	@echo "  make up               - Démarrer les services Docker"
+	@echo "  make down             - Arrêter les services Docker"
+	@echo "  make logs             - Voir les logs Docker"
+	@echo "  make clean            - Nettoyer les build artifacts"
 
 # Installation des dépendances
 install: install-deps
@@ -43,6 +49,15 @@ install-backend:
 	cd backend/core-service && pip install -r requirements.txt
 	@echo ">>> Backend installé."
 
+# Backend : démarrer tous les microservices (même terminal, en arrière-plan)
+start:
+	@echo ">>> Démarrage des microservices backend (API Gateway, Core, AI)..."
+	@echo ">>> Pour lancer un seul service: make dev-api | make dev-core | make dev-ai"
+	(cd backend/api-gateway && $(PYTHON) run.py) & \
+	(cd backend/core-service && $(PYTHON) run.py) & \
+	(cd backend/ai-orchestration && $(PYTHON) run.py) & \
+	wait
+
 # Développement
 dev-front:
 	@echo ">>> Démarrage du frontend (Next.js)..."
@@ -50,15 +65,15 @@ dev-front:
 
 dev-api:
 	@echo ">>> Démarrage de l'API Gateway (FastAPI)..."
-	cd backend/api-gateway && python run.py
+	cd backend/api-gateway && $(PYTHON) run.py
 
 dev-ai:
 	@echo ">>> Démarrage du service AI (FastAPI)..."
-	cd backend/ai-orchestration && python run.py
+	cd backend/ai-orchestration && $(PYTHON) run.py
 
 dev-core:
 	@echo ">>> Démarrage du Core Service (Auth, OCR)..."
-	cd backend/core-service && python run.py
+	cd backend/core-service && $(PYTHON) run.py
 
 dev-celery:
 	@echo ">>> Démarrage du Celery worker..."

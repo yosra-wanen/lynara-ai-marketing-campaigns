@@ -40,6 +40,51 @@ async def create_lead(lead: LeadCreate):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/{lead_id}")
+async def get_lead(lead_id: str):
+    """
+    BE-03: Get a single lead by ID
+    """
+    mock_leads = {
+        "1": {
+            "id": "1",
+            "email": "john.doe@company.com",
+            "first_name": "John",
+            "last_name": "Doe",
+            "status": "new",
+            "score": 85,
+            "created_at": "2026-02-24T10:00:00"
+        },
+        "2": {
+            "id": "2",
+            "email": "jane.smith@company.com",
+            "first_name": "Jane",
+            "last_name": "Smith",
+            "status": "contacted",
+            "score": 92,
+            "created_at": "2026-02-24T11:00:00"
+        },
+        "3": {
+            "id": "3",
+            "email": "ahmed.benzema@company.com",
+            "first_name": "Ahmed",
+            "last_name": "Benzema",
+            "status": "qualified",
+            "score": 78,
+            "created_at": "2026-02-24T12:00:00"
+        }
+    }
+    
+    lead = mock_leads.get(lead_id)
+    
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    return {
+        "success": True,
+        "data": lead
+    }
+
 @router.get("/")
 async def list_leads(
     page: int = 1,

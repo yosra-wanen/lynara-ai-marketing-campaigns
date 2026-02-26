@@ -46,7 +46,6 @@ async def collect_leads(source: str, query: str, limit: int = 10):
     """
     BE-04: Collect leads from web with IA
     """
-    # Mock data - simulating AI-powered web collection
     mock_collected_leads = []
     
     for i in range(limit):
@@ -69,6 +68,32 @@ async def collect_leads(source: str, query: str, limit: int = 10):
         "query": query,
         "total_collected": len(mock_collected_leads),
         "data": mock_collected_leads
+    }
+
+@router.post("/{lead_id}/enrich")
+async def enrich_lead(lead_id: str):
+    """
+    BE-05: Enrich a lead with external data
+    """
+    mock_enriched_data = {
+        "id": lead_id,
+        "enriched_email": f"verified.{random.choice(['work', 'personal'])}@domain.com",
+        "enriched_phone": f"+33{random.randint(600000000, 799999999)}",
+        "company_siret": f"{random.randint(100000000, 999999999)}{random.randint(100000, 999999)}",
+        "company_size": random.choice(["1-10", "11-50", "51-200", "201-1000", "1000+"]),
+        "company_sector": random.choice(["Tech", "Finance", "Healthcare", "Retail", "Manufacturing"]),
+        "social_profiles": {
+            "linkedin": f"https://linkedin.com/in/lead-{lead_id}",
+            "twitter": f"https://twitter.com/lead_{lead_id}"
+        },
+        "confidence_score": random.randint(75, 98),
+        "enriched_at": datetime.now().isoformat()
+    }
+    
+    return {
+        "success": True,
+        "lead_id": lead_id,
+        "enriched_data": mock_enriched_data
     }
 
 @router.get("/{lead_id}")

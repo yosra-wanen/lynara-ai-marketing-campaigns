@@ -96,6 +96,90 @@ async def enrich_lead(lead_id: str):
         "enriched_data": mock_enriched_data
     }
 
+@router.post("/deduplicate")
+async def deduplicate_leads(threshold: float = 0.8):
+    """
+    BE-06: Detect and merge duplicate leads
+    """
+    mock_duplicates = [
+        {
+            "group_id": "dup1",
+            "leads": [
+                {
+                    "id": "1",
+                    "email": "john.doe@company.com",
+                    "first_name": "John",
+                    "last_name": "Doe",
+                    "company": "Tech Solutions",
+                    "similarity": 0.95
+                },
+                {
+                    "id": "4", 
+                    "email": "john.d@company.com",
+                    "first_name": "J.",
+                    "last_name": "Doe",
+                    "company": "Tech Solutions Inc",
+                    "similarity": 0.92
+                }
+            ],
+            "master_lead_id": "1",
+            "merged_fields": {
+                "email": "john.doe@company.com",
+                "phone": "+33612345678",
+                "company": "Tech Solutions"
+            }
+        },
+        {
+            "group_id": "dup2",
+            "leads": [
+                {
+                    "id": "2",
+                    "email": "jane.smith@company.com",
+                    "first_name": "Jane",
+                    "last_name": "Smith",
+                    "company": "Marketing Pro",
+                    "similarity": 0.98
+                },
+                {
+                    "id": "5",
+                    "email": "j.smith@company.com",
+                    "first_name": "Jane",
+                    "last_name": "Smith",
+                    "company": "Marketing Pro LLC",
+                    "similarity": 0.94
+                }
+            ],
+            "master_lead_id": "2",
+            "merged_fields": {
+                "email": "jane.smith@company.com",
+                "phone": "+33687654321",
+                "company": "Marketing Pro"
+            }
+        }
+    ]
+    
+    filtered_duplicates = []
+    for group in mock_duplicates:
+        avg_similarity = sum(l["similarity"] for l in group["leads"]) / len(group["leads"])
+        if avg_similarity >= threshold:
+            filtered_duplicates.append(group)
+    
+    return {
+        "success": True,
+        "threshold": threshold,
+        "duplicate_groups_found": len(filtered_duplicates),
+        "total_leads_affected": sum(len(g["leads"]) for g in filtered_duplicates),
+        "duplicate_groups": filtered_duplicates,
+        "suggested_merges": [
+            {
+                "group_id": g["group_id"],
+                "keep_lead_id": g["master_lead_id"],
+                "merge_lead_ids": [l["id"] for l in g["leads"] if l["id"] != g["master_lead_id"]]
+            }
+            for g in filtered_duplicates
+        ]
+    }
+
 @router.get("/{lead_id}")
 async def get_lead(lead_id: str):
     """

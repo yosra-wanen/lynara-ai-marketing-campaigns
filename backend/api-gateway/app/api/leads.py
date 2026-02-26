@@ -2,7 +2,8 @@
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List, Dict
+import random
 from datetime import datetime
 
 router = APIRouter()
@@ -39,6 +40,36 @@ async def create_lead(lead: LeadCreate):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/collect")
+async def collect_leads(source: str, query: str, limit: int = 10):
+    """
+    BE-04: Collect leads from web with IA
+    """
+    # Mock data - simulating AI-powered web collection
+    mock_collected_leads = []
+    
+    for i in range(limit):
+        mock_collected_leads.append({
+            "id": f"c{i+1}",
+            "email": f"contact{random.randint(1,999)}@company{random.randint(1,100)}.com",
+            "first_name": "Collected",
+            "last_name": f"Lead{random.randint(1,100)}",
+            "company_name": f"Business {random.randint(1,50)}",
+            "position": random.choice(["CEO", "CTO", "Manager", "Director", "Founder"]),
+            "source": source,
+            "query": query,
+            "confidence_score": random.randint(60, 99),
+            "collected_at": datetime.now().isoformat()
+        })
+    
+    return {
+        "success": True,
+        "source": source,
+        "query": query,
+        "total_collected": len(mock_collected_leads),
+        "data": mock_collected_leads
+    }
 
 @router.get("/{lead_id}")
 async def get_lead(lead_id: str):

@@ -1,8 +1,8 @@
 """Endpoints Leads - à connecter avec Supabase."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List, Dict
+from typing import Optional
 import random
 from datetime import datetime
 
@@ -180,49 +180,28 @@ async def deduplicate_leads(threshold: float = 0.8):
         ]
     }
 
-@router.get("/{lead_id}")
-async def get_lead(lead_id: str):
+@router.post("/segments")
+async def create_segment(
+    rules: dict,
+    name: str = Query(...),
+    description: str = Query(...)
+):
     """
-    BE-03: Get a single lead by ID
+    BE-07: Create a new segment
     """
-    mock_leads = {
-        "1": {
-            "id": "1",
-            "email": "john.doe@company.com",
-            "first_name": "John",
-            "last_name": "Doe",
-            "status": "new",
-            "score": 85,
-            "created_at": "2026-02-24T10:00:00"
-        },
-        "2": {
-            "id": "2",
-            "email": "jane.smith@company.com",
-            "first_name": "Jane",
-            "last_name": "Smith",
-            "status": "contacted",
-            "score": 92,
-            "created_at": "2026-02-24T11:00:00"
-        },
-        "3": {
-            "id": "3",
-            "email": "ahmed.benzema@company.com",
-            "first_name": "Ahmed",
-            "last_name": "Benzema",
-            "status": "qualified",
-            "score": 78,
-            "created_at": "2026-02-24T12:00:00"
-        }
-    }
-    
-    lead = mock_leads.get(lead_id)
-    
-    if not lead:
-        raise HTTPException(status_code=404, detail="Lead not found")
+    segment_id = f"seg_{random.randint(1000, 9999)}"
     
     return {
         "success": True,
-        "data": lead
+        "data": {
+            "id": segment_id,
+            "name": name,
+            "description": description,
+            "rules": rules,
+            "lead_count": random.randint(50, 500),
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
+        }
     }
 
 @router.get("/")
@@ -285,4 +264,91 @@ async def list_leads(
         "limit": limit,
         "total": len(mock_leads),
         "total_pages": (len(mock_leads) + limit - 1) // limit
+    }
+
+@router.get("/segments")
+async def list_segments():
+    """
+    BE-08: List all segments
+    """
+    mock_segments = [
+        {
+            "id": "seg_1001",
+            "name": "High Value Prospects",
+            "description": "Leads with score > 80 and budget > 50k",
+            "lead_count": 156,
+            "created_at": "2026-02-20T10:00:00"
+        },
+        {
+            "id": "seg_1002",
+            "name": "Tech Decision Makers",
+            "description": "CTOs, VPs of Engineering in tech sector",
+            "lead_count": 89,
+            "created_at": "2026-02-21T14:30:00"
+        },
+        {
+            "id": "seg_1003",
+            "name": "Recent Engagement",
+            "description": "Opened emails or clicked in last 7 days",
+            "lead_count": 234,
+            "created_at": "2026-02-22T09:15:00"
+        },
+        {
+            "id": "seg_1004",
+            "name": "Need Enrichment",
+            "description": "Leads missing phone or email",
+            "lead_count": 67,
+            "created_at": "2026-02-23T16:45:00"
+        }
+    ]
+    
+    return {
+        "success": True,
+        "total": len(mock_segments),
+        "data": mock_segments
+    }
+
+@router.get("/{lead_id}")
+async def get_lead(lead_id: str):
+    """
+    BE-03: Get a single lead by ID
+    """
+    mock_leads = {
+        "1": {
+            "id": "1",
+            "email": "john.doe@company.com",
+            "first_name": "John",
+            "last_name": "Doe",
+            "status": "new",
+            "score": 85,
+            "created_at": "2026-02-24T10:00:00"
+        },
+        "2": {
+            "id": "2",
+            "email": "jane.smith@company.com",
+            "first_name": "Jane",
+            "last_name": "Smith",
+            "status": "contacted",
+            "score": 92,
+            "created_at": "2026-02-24T11:00:00"
+        },
+        "3": {
+            "id": "3",
+            "email": "ahmed.benzema@company.com",
+            "first_name": "Ahmed",
+            "last_name": "Benzema",
+            "status": "qualified",
+            "score": 78,
+            "created_at": "2026-02-24T12:00:00"
+        }
+    }
+    
+    lead = mock_leads.get(lead_id)
+    
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    return {
+        "success": True,
+        "data": lead
     }

@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { ArrowLeft, Building2, User, Shield, CreditCard, Mail } from 'lucide-react';
+import { ArrowLeft, Building2, User, Shield, CreditCard, Mail, LogOut } from 'lucide-react';
 import { useTranslation } from '@/providers/I18nProvider';
 import { cn } from '@/lib/utils';
+import { useRouter, usePathname } from 'next/navigation';
+import { SupabaseService } from '../services/supabase.service';
 
 const navItems = [
   { href: '/profile/companies', icon: Building2, labelKey: 'navCompanies', descKey: 'navCompaniesDesc' },
@@ -21,6 +22,21 @@ export default function ProfileLayout({
 }) {
   const pathname = usePathname();
   const { t } = useTranslation();
+  const router = useRouter();
+
+  async function handleLogout() {
+    try{
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (error) {
+        const supabaseService = new SupabaseService();
+        await supabaseService.killSession();
+    }finally{
+      router.push('/login');
+    }
+  }
 
   return (
     <div className="min-h-screen bg-white dark:bg-black flex">
@@ -60,6 +76,16 @@ export default function ProfileLayout({
             );
           })}
         </nav>
+        <div className="p-4 border-t border-gray-100 dark:border-[#262626] mt-auto mb-10">
+          <button
+            className="flex items-start gap-3.5 rounded-xl px-4 py-3.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all duration-200"  onClick={handleLogout}
+          >
+            <LogOut size={20} className= "mt-1.0"/>
+            <div>
+              <p className="font-semibold text-sm">Logout</p>
+            </div>
+          </button>
+        </div>
       </aside>
 
       {/* Main content */}

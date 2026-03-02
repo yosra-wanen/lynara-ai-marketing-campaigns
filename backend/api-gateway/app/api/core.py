@@ -14,7 +14,10 @@ async def proxy_to_core(request: Request, path: str):
     """Proxy core service to the appropriate path (map /auth/* -> core /auth/*)."""
     async with httpx.AsyncClient() as client:
 
-        if path.startswith("register/") or path == "register":
+        if path.startswith("register/") or path == "register"\
+        or path.startswith("login/") or path == "login"\
+        or path.startswith("forgot-password/") or path == "forgot-password"\
+        or path.startswith("logout/") or path == "logout":
             url = f"{CORE_SERVICE_URL}/auth/{path}"
         else:
             url = f"{CORE_SERVICE_URL}/{path}"

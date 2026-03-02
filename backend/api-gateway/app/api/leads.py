@@ -7,7 +7,7 @@ router = APIRouter()
 
 @router.get("")
 async def findAll():
-    """Liste des leads - à connecter avec Supabase."""
+    """List of leads - to be connected with Supabase."""
     return {
         "data": [],
         "message": "Leads endpoint - à connecter avec Supabase",

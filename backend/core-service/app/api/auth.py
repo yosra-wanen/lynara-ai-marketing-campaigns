@@ -1,58 +1,61 @@
-"""Endpoints d'authentification - Intégration Supabase Auth."""
+"""Authentication endpoints - Supabase Auth integration."""
 
-import os
-
-from fastapi import APIRouter, HTTPException
+import os 
+from typing import Annotated
+from fastapi import APIRouter, HTTPException, Response, Depends, Request
 from pydantic import BaseModel
-from supabase import create_client
-
+from app.shared.auth_dependency import get__authenticated_user
+from app.shared.supabase_service import get_supabase
 router = APIRouter()
-
-
-def get_supabase():
-    """Creates and returns a Supabase client with the key service_role."""
-    url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-    if not url or not key:
-        raise HTTPException(
-            status_code=500,
-            detail="Missing Supabase configuration (SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY)",
-        )
-    return create_client(url, key)
-
+client = get_supabase()
 
 class LoginRequest(BaseModel):
-    """Requête de connexion."""
+    """Connection request."""
 
     email: str
     password: str
 
 
 class RegisterRequest(BaseModel):
-    """Requête d'inscription."""
+    """Registration request."""
 
     email: str
     password: str
     full_name: str = ""
     phone: str = ""
 
+class ForgotPasswordRequest(BaseModel):
+    """Forgot password request."""
+
+    email: str
+
 
 class TokenResponse(BaseModel):
-    """Réponse avec token."""
+    """Response with token."""
 
     access_token: str
     token_type: str = "bearer"
 
-
 @router.post("/login", response_model=TokenResponse)
-async def login(request: LoginRequest):
-    """Connexion - à connecter avec Supabase Auth."""
-    # TODO: Intégration Supabase Auth
-    # from supabase import create_client
-    # supabase.auth.sign_in_with_password({"email": request.email, "password": request.password})
-    return TokenResponse(
-        access_token="placeholder",
-    )
+async def login(request: LoginRequest,response: Response):
+    """Connection - to connect with Supabase Auth."""
+    try:
+        result = client.auth.sign_in_with_password({"email": request.email, "password": request.password})
+        access_token = result.session.access_token
+
+        # Store the token in an HttpOnly cookie
+        response.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,   
+            secure=False,
+            samesite="lax" # ← protection CSRF
+        )
+
+        return TokenResponse(access_token=access_token)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e)) 
+    
 
 
 @router.post("/register")
@@ -63,13 +66,14 @@ async def register(request: RegisterRequest):
     which automatically creates the profile in core.profiles.
     """
     try:
-        supabase = get_supabase()
-
-        result = supabase.auth.sign_up(
+        result = client.auth.sign_up(
             {
                 "email": request.email,
                 "password": request.password,
                 "user_metadata": {"full_name": request.full_name, "phone": request.phone},
+                "options": {
+                    "email_redirect_to": "http://localhost:3000/login"
+                }
             }
         )
 
@@ -81,10 +85,41 @@ async def register(request: RegisterRequest):
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
 
+@router.post("/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest):
+    """Forgot password - sends a reset email via Supabase Auth."""
+    try:
+        client.auth.reset_password_for_email(request.email, {
+            "redirect_to": "http://localhost:3000/reset-password"
+        })
+        return {"message": "Password reset email sent"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+@router.post("/logout")
+async def logout(request: Request,response: Response):
+    """Logout - removes the access token cookie."""
+    try:
+        token=request.cookies.get("access_token")
+        client.auth.set_session(access_token=token, refresh_token=None)
+        client.auth.sign_out()   
+    except Exception as e:
+        print("Supabase logout error:", str(e))
+    
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+        secure=False,   
+        httponly=True,
+        samesite="lax"
+    )
+    return {"message": "Logged out successfully"}
+    
 
 @router.get("/me")
-async def get_current_user():
-    """Utilisateur courant - à protéger avec JWT/Supabase."""
-    # TODO: Validation JWT, récupération user depuis Supabase
-    return {"user": "placeholder"}
+async def get_current_user(current_user: Annotated[dict, Depends(get__authenticated_user)]):
+    """Get current user - returns the authenticated user's information."""
+    return current_user
+

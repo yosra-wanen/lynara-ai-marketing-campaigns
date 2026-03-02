@@ -70,9 +70,12 @@ export default function LeadsPage() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Leads</h1>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+        <a 
+          href="/leads/nouveau"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-block"
+        >
           + Nouveau Lead
-        </button>
+        </a>
       </div>
       
       {/* Search and Filter Bar */}

@@ -9,6 +9,10 @@ export default function LeadsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1)
+  const [leadsPerPage] = useState(5) // Show 5 leads per page
+  
   const supabase = createClient()
 
   useEffect(() => {
@@ -44,6 +48,25 @@ export default function LeadsPage() {
     
     return matchesSearch && matchesStatus
   })
+
+  // Pagination logic
+  const indexOfLastLead = currentPage * leadsPerPage
+  const indexOfFirstLead = indexOfLastLead - leadsPerPage
+  const currentLeads = filteredLeads.slice(indexOfFirstLead, indexOfLastLead)
+  const totalPages = Math.ceil(filteredLeads.length / leadsPerPage)
+
+  // Change page
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1)
+    }
+  }
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1)
+    }
+  }
 
   const getStatusLabel = (score: number) => {
     if (score >= 70) return '🔥 Chaud'
@@ -85,13 +108,19 @@ export default function LeadsPage() {
           placeholder="Rechercher..."
           className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => {
+            setSearchTerm(e.target.value)
+            setCurrentPage(1) // Reset to first page on search
+          }}
         />
         
         <select
           className="w-48 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={(e) => {
+            setStatusFilter(e.target.value)
+            setCurrentPage(1) // Reset to first page on filter
+          }}
         >
           <option value="all">Tous les statuts</option>
           <option value="chaud">🔥 Chaud</option>
@@ -119,7 +148,7 @@ export default function LeadsPage() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredLeads.map(lead => (
+            {currentLeads.map(lead => (
               <tr key={lead.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {lead.nom_complet}
@@ -151,6 +180,39 @@ export default function LeadsPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Controls */}
+      {filteredLeads.length > 0 && (
+        <div className="flex items-center justify-between mt-4">
+          <button
+            onClick={goToPreviousPage}
+            disabled={currentPage === 1}
+            className={`px-4 py-2 text-sm rounded-lg ${
+              currentPage === 1
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            ← Précédent
+          </button>
+          
+          <span className="text-sm text-gray-600">
+            Page {currentPage} sur {totalPages}
+          </span>
+          
+          <button
+            onClick={goToNextPage}
+            disabled={currentPage === totalPages}
+            className={`px-4 py-2 text-sm rounded-lg ${
+              currentPage === totalPages
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            Suivant →
+          </button>
+        </div>
+      )}
       
       {filteredLeads.length === 0 && (
         <p className="text-center text-gray-500 mt-8">Aucun résultat trouvé</p>

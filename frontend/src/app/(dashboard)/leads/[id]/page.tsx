@@ -1,83 +1,133 @@
 'use client'
-
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+const COMPANY_ID = '11111111-1111-1111-1111-111111111111'
 
 export default function LeadDetailPage() {
+  const { id } = useParams()
+  const router = useRouter()
   const [lead, setLead] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  
-  const params = useParams()
-  const supabase = createClient()
-  
-  const leadId = params.id
 
-  useEffect(() => {
-    fetchLead()
-  }, [leadId])
+  useEffect(() => { fetchLead() }, [id])
 
   async function fetchLead() {
     try {
-      setLoading(true)
-      const { data, error } = await supabase
-        .from('leads')
-        .select('*')
-        .eq('id', leadId)
-        .single()
-      if (error) throw error
-      setLead(data)
-    } catch (error) {
-      console.error('Error:', error)
+      const res = await fetch(`${API_URL}/leads/${id}?company_id=${COMPANY_ID}`)
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.detail)
+      setLead(json.data)
+    } catch {
+      toast.error('Lead introuvable')
+      router.push('/leads')
     } finally {
       setLoading(false)
     }
   }
 
-  if (loading) {
-    return (
-      <div className="p-8 text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="mt-4">Chargement...</p>
-      </div>
-    )
+  const getRatingLabel = (rating: string) => {
+    if (rating === 'hot') return '🔥 Chaud'
+    if (rating === 'warm') return '⚡ Moyen'
+    return '❄️ Froid'
   }
 
-  if (!lead) {
-    return (
-      <div className="p-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
-          <h2 className="text-red-800 font-semibold mb-2">Lead non trouvé</h2>
-          <p className="text-red-600 mb-4">L'ID que vous recherchez n'existe pas.</p>
-          <div className="flex gap-3">
-            <a 
-              href="/leads" 
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-            >
-              ← Retour
-            </a>
-            <button 
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Réessayer
-            </button>
-          </div>
-        </div>
-      </div>
-    )
+  const getRatingColor = (rating: string) => {
+    if (rating === 'hot') return 'bg-red-100 text-red-800'
+    if (rating === 'warm') return 'bg-yellow-100 text-yellow-800'
+    return 'bg-blue-100 text-blue-800'
   }
+
+  const getStatusLabel = (status: string) => {
+    const map: any = { new: 'Nouveau', contacted: 'Contacté', qualified: 'Qualifié', proposal: 'Proposition', negotiation: 'Négociation', converted: 'Converti', lost: 'Perdu' }
+    return map[status] || status
+  }
+
+  if (loading) return (
+    <div className="p-8 text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E1306C] mx-auto"></div>
+      <p className="mt-4 text-gray-500">Chargement...</p>
+    </div>
+  )
+
+  if (!lead) return null
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
-      <a href="/leads" className="text-blue-600 mb-4 block">← Retour à la liste</a>
-      
-      <div className="bg-white rounded-lg border p-6">
-        <h1 className="text-2xl font-bold mb-4">{lead.nom_complet}</h1>
-        <div className="space-y-2">
-          <p><strong>Email:</strong> {lead.email}</p>
-          <p><strong>Téléphone:</strong> {lead.telephone || '-'}</p>
-          <p><strong>Score:</strong> {lead.score || 0}</p>
+    <div className="p-8 max-w-3xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-[#111827]">{lead.customer_name || 'Lead sans nom'}</h1>
+        <a href="/leads" className="text-[#E1306C] hover:underline">← Retour</a>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="bg-white rounded-lg border p-4">
+          <p className="text-xs text-gray-400 uppercase mb-1">Statut</p>
+          <p className="font-medium">{getStatusLabel(lead.status)}</p>
+        </div>
+        <div className="bg-white rounded-lg border p-4">
+          <p className="text-xs text-gray-400 uppercase mb-1">Rating</p>
+          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getRatingColor(lead.rating)}`}>
+            {getRatingLabel(lead.rating)}
+          </span>
+        </div>
+        <div className="bg-white rounded-lg border p-4">
+          <p className="text-xs text-gray-400 uppercase mb-1">Score</p>
+          <p className="font-medium text-2xl text-[#E1306C]">{lead.score || 0}<span className="text-sm text-gray-400">/100</span></p>
+        </div>
+        <div className="bg-white rounded-lg border p-4">
+          <p className="text-xs text-gray-400 uppercase mb-1">Valeur estimée</p>
+          <p className="font-medium">{lead.estimated_value ? `${lead.estimated_value} €` : '-'}</p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg border p-6 space-y-4">
+        <h2 className="text-lg font-semibold text-[#111827] border-b pb-2">Informations de contact</h2>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs text-gray-400 uppercase mb-1">Nom</p>
+            <p className="text-sm">{lead.customer_name || '-'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 uppercase mb-1">Email</p>
+            <p className="text-sm">{lead.customer_email || '-'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 uppercase mb-1">Téléphone</p>
+            <p className="text-sm">{lead.customer_phone || '-'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 uppercase mb-1">Poste</p>
+            <p className="text-sm">{lead.customer_job_title || '-'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 uppercase mb-1">Entreprise</p>
+            <p className="text-sm">{lead.company_name || '-'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 uppercase mb-1">Source</p>
+            <p className="text-sm">{lead.source || '-'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 uppercase mb-1">Priorité</p>
+            <p className="text-sm">{lead.priority || '-'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 uppercase mb-1">Probabilité</p>
+            <p className="text-sm">{lead.probability || 0}%</p>
+          </div>
+        </div>
+
+        {lead.crm_notes && (
+          <div className="pt-2">
+            <p className="text-xs text-gray-400 uppercase mb-1">Notes CRM</p>
+            <p className="text-sm bg-gray-50 p-3 rounded-lg">{lead.crm_notes}</p>
+          </div>
+        )}
+
+        <div className="pt-2 text-xs text-gray-400">
+          Créé le {new Date(lead.created_at).toLocaleDateString('fr-FR')}
         </div>
       </div>
     </div>

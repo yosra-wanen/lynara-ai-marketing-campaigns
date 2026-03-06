@@ -29,6 +29,9 @@ class ForgotPasswordRequest(BaseModel):
 
     email: str
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 class TokenResponse(BaseModel):
     """Response with token."""
@@ -116,10 +119,34 @@ async def logout(request: Request,response: Response):
         samesite="lax"
     )
     return {"message": "Logged out successfully"}
-    
 
-@router.get("/me")
-async def get_current_user(current_user: Annotated[dict, Depends(get__authenticated_user)]):
-    """Get current user - returns the authenticated user's information."""
-    return current_user
+@router.post("/change-password")
+async def change_password(request: Request, request_data: ChangePasswordRequest, current_user: Annotated[dict, Depends(get__authenticated_user)]):
+    try:
+        try:
+            client.auth.sign_in_with_password({
+                "email": current_user.email,
+                "password": request_data.current_password
+            })
+        except Exception:
+            raise HTTPException(status_code=401, detail="WRONG_PASSWORD")
+
+        token = request.cookies.get("access_token")
+        if not token:
+            raise HTTPException(status_code=401, detail="SESSION_EXPIRED")
+
+        client.auth.set_session(access_token=token, refresh_token=token)
+
+        try:
+            client.auth.update_user({"password": request_data.new_password})
+        except Exception:
+            raise HTTPException(status_code=400, detail="PASSWORD_UPDATE_FAILED")
+
+        return {"message": "Password changed successfully"}
+
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="SERVER_ERROR")
+
 

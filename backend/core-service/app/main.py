@@ -3,7 +3,7 @@
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import auth, ocr
+from app.api import auth, ocr, profile
 # Load environment variables from .env file
 load_dotenv()
 
@@ -23,6 +23,7 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(ocr.router, prefix="/ocr", tags=["ocr"])
+app.include_router(profile.router, prefix="/profile", tags=["profile"])
 
 
 @app.get("/")

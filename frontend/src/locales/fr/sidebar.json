@@ -14,5 +14,11 @@
   "automations": "Automatisations",
   "settings": "Paramètres",
   "profile": "Mon Profil",
-  "logout": "Déconnexion"
-}
+  "logout": "Déconnexion",
+  "leads": "Leads",
+  "leads_list": "Leads",
+  "enrichment": "Enrichissement",
+  "collecte": "Collecte Web IA",
+  "segments": "Segments",
+  "deduplication": "Déduplication"
+  }

@@ -1,10 +1,23 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 const COMPANY_ID = '11111111-1111-1111-1111-111111111111'
+
+async function fetchWithRetry(url: string, options?: RequestInit, retries = 3): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(url, options)
+      if (res.ok) return res
+      if (i === retries - 1) return res
+    } catch (err) {
+      if (i === retries - 1) throw err
+      await new Promise(r => setTimeout(r, 1000 * (i + 1)))
+    }
+  }
+  throw new Error('Max retries reached')
+}
 
 export default function LeadsPage() {
   const [leads, setLeads] = useState<any[]>([])
@@ -16,7 +29,6 @@ export default function LeadsPage() {
   const [selectedLeads, setSelectedLeads] = useState<string[]>([])
   const [selectAll, setSelectAll] = useState(false)
   const leadsPerPage = 10
-  const router = useRouter()
 
   useEffect(() => { fetchLeads() }, [currentPage, statusFilter])
 
@@ -31,22 +43,13 @@ export default function LeadsPage() {
       if (statusFilter !== 'all') params.append('status', statusFilter)
       if (searchTerm) params.append('search', searchTerm)
 
-      const res = await fetch(`${API_URL}/leads/?${params}`)
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        const msg = typeof json.detail === 'string'
-          ? json.detail
-          : Array.isArray(json.detail)
-            ? json.detail.map((d: any) => d?.msg ?? d).join(', ')
-            : json.detail ? JSON.stringify(json.detail) : `Erreur ${res.status}`
-        throw new Error(msg || `Erreur ${res.status}`)
-      }
+      const res = await fetchWithRetry(`${API_URL}/leads/?${params}`)
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.detail)
       setLeads(json.data || [])
       setTotal(json.total || 0)
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Erreur lors du chargement des leads'
-      console.error('Leads fetch error:', error)
-      toast.error(message)
+      toast.error('Erreur lors du chargement des leads')
     } finally {
       setLoading(false)
     }
@@ -61,7 +64,7 @@ export default function LeadsPage() {
   const handleDelete = async (leadId: string) => {
     if (!confirm('Supprimer ce lead ?')) return
     try {
-      const res = await fetch(`${API_URL}/leads/${leadId}?company_id=${COMPANY_ID}`, { method: 'DELETE' })
+      const res = await fetchWithRetry(`${API_URL}/leads/${leadId}?company_id=${COMPANY_ID}`, { method: 'DELETE' })
       if (!res.ok) throw new Error()
       toast.success('Lead supprimé')
       fetchLeads()
@@ -75,7 +78,7 @@ export default function LeadsPage() {
     if (!confirm(`Supprimer ${selectedLeads.length} lead(s) ?`)) return
     try {
       await Promise.all(selectedLeads.map(id =>
-        fetch(`${API_URL}/leads/${id}?company_id=${COMPANY_ID}`, { method: 'DELETE' })
+        fetchWithRetry(`${API_URL}/leads/${id}?company_id=${COMPANY_ID}`, { method: 'DELETE' })
       ))
       toast.success(`${selectedLeads.length} lead(s) supprimé(s)`)
       setSelectedLeads([])

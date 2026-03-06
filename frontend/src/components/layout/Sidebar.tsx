@@ -16,6 +16,11 @@ import {
   LogOut,
   CircleDollarSign,
   ShoppingBag,
+  UserPlus,
+  Layers,
+  Copy,
+  Sparkles,
+  Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/providers/I18nProvider';
@@ -40,6 +45,13 @@ const crmMenuItems: NavItem[] = [
   { href: '/contracts', labelKey: 'contracts', icon: <FolderOpen size={20} /> },
   { href: '/forms', labelKey: 'forms', icon: <ClipboardList size={20} /> },
   { href: '/scheduling', labelKey: 'scheduling', icon: <Clock size={20} /> },
+];
+const crmLeadsItems: NavItem[] = [
+  { href: '/leads', labelKey: 'leads', icon: <UserPlus size={20} /> },
+  { href: '/collecte', labelKey: 'collecte', icon: <Globe size={20} /> },
+  { href: '/segments', labelKey: 'segments', icon: <Layers size={20} /> },
+  { href: '/deduplication', labelKey: 'deduplication', icon: <Copy size={20} /> },
+  { href: '/enrichment', labelKey: 'enrichment', icon: <Sparkles size={20} /> },
 ];
 
 const crmExploreItems: NavItem[] = [
@@ -107,6 +119,9 @@ export function Sidebar({
       <nav className="flex-1 overflow-y-auto p-4">
         <SidebarSection titleKey="menu" items={menuItems} pathname={pathname} activeSection={activeSection} />
         <SidebarSection titleKey="explore" items={exploreItems} pathname={pathname} activeSection={activeSection} />
+        {activeSection === 'crm' && (
+      <SidebarSection titleKey="leads" items={crmLeadsItems} pathname={pathname} activeSection={activeSection} />
+)}
       </nav>
 
       {/* Footer - Logout only; profile is in header avatar menu */}

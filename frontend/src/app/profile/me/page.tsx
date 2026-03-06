@@ -1,25 +1,107 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PageHeader, Card, Button, Input, Avatar, Tabs } from '@/components';
-import { useTranslation } from '@/providers/I18nProvider';
 import { Upload, Instagram, Globe } from 'lucide-react';
+import { ToastService } from '@/app/services/toast.service';
+import { TranslationService } from '@/app/services/translation.service';
+
+type Profile = {
+    user_id: string;
+    email: string;
+    full_name: string;
+    phone: string;
+    is_admin: boolean;
+}
 
 export default function ProfileMePage() {
-  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('personal');
+  const toastService = new ToastService();
+  const translator = new TranslationService();
+  const [profile, setProfile] = useState<Profile>({
+        user_id: '',
+        email: '',
+        full_name: '',
+        phone: '',
+        is_admin: false,
+    });
+  const [form, setForm] = useState({
+    full_name: '', email: '', phone: '',
+  });
 
   const tabs = [
-    { id: 'personal', label: t('profile', 'personalInfo') },
-    { id: 'connected', label: t('profile', 'connectedAccounts') },
-    { id: 'security', label: t('profile', 'security') },
+    { id: 'personal', label: translator.translate('profile', 'personalInfo') },
+    { id: 'connected', label: translator.translate('profile', 'connectedAccounts') },
+    { id: 'security', label: translator.translate('profile', 'security') },
   ];
+
+  const fetchProfile = () => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile/me`, {
+            method: 'GET',
+            credentials: 'include',
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Unauthorized');
+            }
+            return response.json();
+        })
+        .then(data => {
+            setProfile({
+                user_id: data.user_id || '',
+                email: data.email || '',
+                full_name: data.full_name || '',
+                phone: data.phone || '',
+                is_admin: data.is_admin || false,
+            });
+            setForm({
+                full_name: data.full_name || '',
+                email: data.email || '',
+                phone: data.phone || '',
+            });
+        })
+        .catch((error) => {
+            toastService.displayToast(translator.translate('profile', 'fetchError'), 'error');
+        });
+  }
+
+  useEffect(() => { fetchProfile(); }, []);
+
+  const handleSave = () => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile/me`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        full_name: form.full_name,
+        phone:     form.phone,
+        email:     form.email !== profile.email ? form.email : null,
+      }),
+    })
+    .then(res => {
+      if (!res.ok) throw new Error('Update failed');
+      return res.json();
+    })
+    .then(() => {
+      toastService.displayToast(translator.translate('profile', 'updateSuccess'), 'success');
+      fetchProfile();
+    })
+    .catch(() => toastService.displayToast(translator.translate('profile', 'updateError'), 'error'));
+  };
+
+  const handleCancel = () => {
+    setForm({
+      full_name: profile.full_name,
+      email:     profile.email,
+      phone:     profile.phone,
+    });
+  };
 
   return (
     <div className="p-6 md:p-8 max-w-4xl space-y-8">
       <PageHeader
-        title={t('profile', 'title')}
-        subtitle={t('profile', 'subtitle')}
+        title={translator.translate('profile', 'title')}
+        subtitle={translator.translate('profile', 'subtitle')}
       />
 
       <Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
@@ -30,7 +112,7 @@ export default function ProfileMePage() {
             <Avatar size="xl" src={null} fallback="RD" className="ring-2 ring-gray-100 dark:ring-[#262626]" />
             <div>
               <Button variant="outline" leftIcon={<Upload size={16} />}>
-                {t('profile', 'uploadAvatar')}
+                {translator.translate('profile', 'uploadAvatar')}
               </Button>
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                 JPG, GIF or PNG. Max size of 800K
@@ -39,25 +121,46 @@ export default function ProfileMePage() {
           </div>
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-900 dark:text-white">{t('profile', 'fullName')}</label>
-              <Input defaultValue="Robbi Darwis" />
+              <label className="text-sm font-medium text-gray-900 dark:text-white">
+                {translator.translate('profile', 'fullName')}
+              </label>
+              <Input
+                value={form.full_name}
+                onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+              />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-900 dark:text-white">{t('profile', 'email')}</label>
-              <Input defaultValue="robbidarwis@flowforge.com" />
+              <label className="text-sm font-medium text-gray-900 dark:text-white">
+                {translator.translate('profile', 'email')}
+              </label>
+              <Input
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-900 dark:text-white">{t('profile', 'phone')}</label>
-              <Input defaultValue="+62 812 3456 7890" />
+              <label className="text-sm font-medium text-gray-900 dark:text-white">
+                {translator.translate('profile', 'phone')}
+              </label>
+              <Input
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-900 dark:text-white">{t('profile', 'language')}</label>
+              <label className="text-sm font-medium text-gray-900 dark:text-white">
+                {translator.translate('profile', 'language')}
+              </label>
               <Input defaultValue="English" />
             </div>
           </div>
           <div className="flex justify-end gap-3 border-t border-gray-100 dark:border-[#262626] pt-6">
-            <Button variant="outline">{t('profile', 'cancel')}</Button>
-            <Button>{t('profile', 'saveChanges')}</Button>
+            <Button variant="outline" onClick={handleCancel}>
+              {translator.translate('profile', 'cancel')}
+            </Button>
+            <Button onClick={handleSave}>
+              {translator.translate('profile', 'saveChanges')}
+            </Button>
           </div>
         </Card>
       )}
@@ -75,7 +178,7 @@ export default function ProfileMePage() {
               </div>
             </div>
             <Button variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-900/30">
-              {t('profile', 'disconnect')}
+              {translator.translate('profile', 'disconnect')}
             </Button>
           </div>
           <div className="flex items-center justify-between">
@@ -88,7 +191,7 @@ export default function ProfileMePage() {
                 <p className="text-sm text-gray-500 dark:text-gray-400">Non connecté</p>
               </div>
             </div>
-            <Button variant="primary">{t('profile', 'connect')}</Button>
+            <Button variant="primary">{translator.translate('profile', 'connect')}</Button>
           </div>
         </Card>
       )}
@@ -96,10 +199,14 @@ export default function ProfileMePage() {
       {activeTab === 'security' && (
         <Card variant="elevated" padding="lg" className="space-y-6 rounded-2xl border border-gray-100 dark:border-[#262626]">
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('profile', 'deleteAccount')}</h3>
-            <p className="text-gray-500 dark:text-gray-400">{t('profile', 'deleteWarning')}</p>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {translator.translate('profile', 'deleteAccount')}
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400">
+              {translator.translate('profile', 'deleteWarning')}
+            </p>
             <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 dark:border-red-900/30 dark:hover:bg-red-900/20">
-              {t('profile', 'deleteAccount')}
+              {translator.translate('profile', 'deleteAccount')}
             </Button>
           </div>
         </Card>

@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import health, campaigns
+from app.api import lead_research
 
 app = FastAPI(
     title="Lynara Campaign AI Orchestration",
@@ -21,7 +22,7 @@ app.add_middleware(
 
 app.include_router(health.router, prefix="/health", tags=["health"])
 app.include_router(campaigns.router, prefix="/campaigns", tags=["campaigns"])
-
+app.include_router(lead_research.router, prefix="/ai-orchestration", tags=["lead-research"])
 
 @app.get("/")
 async def root():

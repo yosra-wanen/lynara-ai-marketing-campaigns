@@ -28,6 +28,7 @@ export async function middleware(req: NextRequest) {
         }
     }
 
+    // Only /profile requires login for now; leads, segments, quotas, etc. are open for demo
     if (user === null && pathname.startsWith('/profile')) {
         return NextResponse.redirect(new URL('/login', req.url))
     }
@@ -40,5 +41,8 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/profile/:path*', '/login'],
+    matcher: [
+        '/profile/:path*',
+        '/login',
+    ],
 }

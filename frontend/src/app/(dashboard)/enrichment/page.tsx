@@ -4,16 +4,23 @@ import toast from 'react-hot-toast'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 const COMPANY_ID = '11111111-1111-1111-1111-111111111111'
+const FETCH_TIMEOUT_MS = 15000
 
-async function fetchWithRetry(url: string, options?: RequestInit, retries = 3): Promise<Response> {
+function fetchWithTimeout(url: string, options?: RequestInit): Promise<Response> {
+  const ctrl = new AbortController()
+  const id = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS)
+  return fetch(url, { ...options, signal: ctrl.signal }).finally(() => clearTimeout(id))
+}
+
+async function fetchWithRetry(url: string, options?: RequestInit, retries = 2): Promise<Response> {
   for (let i = 0; i < retries; i++) {
     try {
-      const res = await fetch(url, options)
+      const res = await fetchWithTimeout(url, options)
       if (res.ok) return res
       if (i === retries - 1) return res
     } catch (err) {
       if (i === retries - 1) throw err
-      await new Promise(r => setTimeout(r, 1000 * (i + 1)))
+      await new Promise(r => setTimeout(r, 800 * (i + 1)))
     }
   }
   throw new Error('Max retries reached')
@@ -58,8 +65,11 @@ export default function EnrichmentPage() {
       if (!res.ok) throw new Error(json.detail)
       setLeads(json.data || [])
       setFilteredLeads(json.data || [])
-    } catch {
-      toast.error('Erreur lors du chargement des leads')
+    } catch (err) {
+      const msg = err instanceof Error && err.name === 'AbortError'
+        ? 'Délai dépassé — vérifiez que l’API (port 3001) est démarrée.'
+        : 'Erreur lors du chargement des leads'
+      toast.error(msg)
     } finally {
       setLoading(false)
     }
@@ -110,13 +120,6 @@ export default function EnrichmentPage() {
   const totalPages = Math.ceil(filteredLeads.length / leadsPerPage)
   const paginatedLeads = filteredLeads.slice((currentPage - 1) * leadsPerPage, currentPage * leadsPerPage)
 
-  if (loading) return (
-    <div className="p-8 text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E1306C] mx-auto"></div>
-      <p className="mt-4 text-gray-500">Chargement...</p>
-    </div>
-  )
-
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -129,11 +132,16 @@ export default function EnrichmentPage() {
           <div className="mb-3">
             <input type="text" placeholder="Rechercher un lead..."
               className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
-              value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
+              value={searchInput} onChange={(e) => setSearchInput(e.target.value)} disabled={loading} />
           </div>
-          <p className="text-xs text-gray-400 mb-2">{filteredLeads.length} lead(s)</p>
+          <p className="text-xs text-gray-400 mb-2">{loading ? 'Chargement...' : `${filteredLeads.length} lead(s)`}</p>
           <div className="space-y-2 max-h-[500px] overflow-y-auto">
-            {paginatedLeads.map(lead => (
+            {loading ? (
+              <div className="py-12 text-center text-gray-500">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E1306C] mx-auto"></div>
+                <p className="mt-2">Chargement...</p>
+              </div>
+            ) : paginatedLeads.map(lead => (
               <div key={lead.lead_id} onClick={() => selectLead(lead)}
                 className={`p-4 rounded-lg border cursor-pointer transition-all ${
                   selectedLead?.lead_id === lead.lead_id
@@ -156,7 +164,7 @@ export default function EnrichmentPage() {
             ))}
           </div>
 
-          {totalPages > 1 && (
+          {!loading && totalPages > 1 && (
             <div className="flex items-center justify-between mt-3">
               <button onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}
                 className={`px-3 py-1 text-xs rounded-lg ${currentPage === 1 ? 'bg-gray-100 text-gray-400' : 'bg-gray-200 hover:bg-gray-300'}`}>

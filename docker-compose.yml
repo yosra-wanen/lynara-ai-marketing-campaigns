@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+  # PostgreSQL (Supabase compatible)
+  postgres:
+    image: postgres:15-alpine
+    container_name: lynara-campaign-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: lynara_campaign
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: lynara-campaign-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Core Service - Auth, OCR, logique métier (FastAPI)
+  core-service:
+    build:
+      context: ./backend/core-service
+      dockerfile: Dockerfile
+    container_name: lynara-campaign-core-service
+    ports:
+      - "8001:8001"
+    environment:
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/lynara_campaign
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # API Gateway (FastAPI)
+  api-gateway:
+    build:
+      context: ./backend/api-gateway
+      dockerfile: Dockerfile
+    container_name: lynara-campaign-api-gateway
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/lynara_campaign
+      REDIS_URL: redis://redis:6379
+      AI_SERVICE_URL: http://ai-orchestration:8000
+      CORE_SERVICE_URL: http://core-service:8001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # FastAPI AI Orchestration
+  ai-orchestration:
+    build:
+      context: ./backend/ai-orchestration
+      dockerfile: Dockerfile
+    container_name: lynara-campaign-ai-orchestration
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/lynara_campaign
+      REDIS_URL: redis://redis:6379
+      CELERY_BROKER_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Celery Worker
+  celery-worker:
+    build:
+      context: ./backend/ai-orchestration
+      dockerfile: Dockerfile
+    container_name: lynara-campaign-celery-worker
+    command: celery -A app.worker worker -l info
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/lynara_campaign
+      REDIS_URL: redis://redis:6379
+      CELERY_BROKER_URL: redis://redis:6379/0
+    depends_on:
+      - ai-orchestration
+      - redis
+
+  # Celery Beat
+  celery-beat:
+    build:
+      context: ./backend/ai-orchestration
+      dockerfile: Dockerfile
+    container_name: lynara-campaign-celery-beat
+    command: celery -A app.worker beat -l info
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/lynara_campaign
+      REDIS_URL: redis://redis:6379
+      CELERY_BROKER_URL: redis://redis:6379/0
+    depends_on:
+      - celery-worker
+      - redis
+
+volumes:
+  postgres_data:

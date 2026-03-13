@@ -1,0 +1,18 @@
+{
+  "menu": "MENU",
+  "explore": "EXPLORER",
+  "dashboard": "Dashboard",
+  "clients": "Clients",
+  "contacts": "Contacts",
+  "proposals": "Propositions",
+  "contracts": "Contrats",
+  "forms": "Formulaires",
+  "scheduling": "Planification",
+  "services": "Services",
+  "accounting": "Comptabilité",
+  "reports": "Rapports",
+  "automations": "Automatisations",
+  "settings": "Paramètres",
+  "profile": "Mon Profil",
+  "logout": "Déconnexion"
+}

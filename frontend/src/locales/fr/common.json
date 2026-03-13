@@ -1,0 +1,14 @@
+{
+  "appName": "Lynara Campaign",
+  "projectVersion": "Projet CRM",
+  "search": "Rechercher...",
+  "logout": "Déconnexion",
+  "save": "Enregistrer",
+  "cancel": "Annuler",
+  "delete": "Supprimer",
+  "edit": "Modifier",
+  "add": "Ajouter",
+  "loading": "Chargement...",
+  "error": "Erreur",
+  "success": "Succès"
+}

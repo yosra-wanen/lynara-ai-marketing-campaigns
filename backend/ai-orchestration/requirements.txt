@@ -1,0 +1,23 @@
+# Lynara Campaign AI Orchestration - FastAPI
+# Python >= 3.11
+
+# Web Framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+
+# Task Queue
+celery>=5.4.0
+redis>=5.2.0
+
+# Database
+sqlalchemy>=2.0.0
+asyncpg>=0.30.0
+
+# Validation & Config
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
+
+# AI / ML (à ajouter selon besoins)
+# google-generativeai>=0.8.0
+# openai>=1.0.0

@@ -1,0 +1,5 @@
+# Lynara Campaign - Dépendances Python globales (optionnel)
+# Les microservices ont leurs propres requirements.txt
+
+# Pour le service AI Orchestration uniquement:
+# cd services/ai-orchestration && pip install -r requirements.txt

@@ -1,0 +1,13 @@
+{
+  "title": "Générer des clients avec l'IA",
+  "description": "Ajoutez une brève description ou des mots-clés qui résument votre email. Pour de meilleurs résultats, sélectionnez la langue, le type de campagne et le ton.",
+  "templateLabel": "Descriptions du template",
+  "placeholder": "Posez tout ce que vous voulez savoir...",
+  "suggest": "Suggest pro..",
+  "uploadImage": "Upload image",
+  "addAttachment": "Add attachment",
+  "generateWithAI": "Générer avec l'IA",
+  "activeCampaigns": "Campagnes actives",
+  "leads": "Leads",
+  "conversionRate": "Taux de conversion"
+}

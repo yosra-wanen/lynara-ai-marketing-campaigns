@@ -1,10 +1,17 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextRequest, NextResponse } from "next/server";
 
+const PUBLIC_ROUTES = [
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password',
+]
+
 export async function middleware(req: NextRequest) {
-    const token = req.cookies.get('access_token')?.value
+    const token    = req.cookies.get('access_token')?.value
     const pathname = req.nextUrl.pathname
-    let user = null
+    let user       = null
 
     if (token) {
         try {
@@ -28,11 +35,13 @@ export async function middleware(req: NextRequest) {
         }
     }
 
-    if (user === null && pathname.startsWith('/profile')) {
+    const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route))
+
+    if (user === null && !isPublicRoute) {
         return NextResponse.redirect(new URL('/login', req.url))
     }
 
-    if (user !== null && pathname.startsWith('/login')) {
+    if (user !== null && isPublicRoute) {
         return NextResponse.redirect(new URL('/profile/companies', req.url))
     }
 
@@ -40,5 +49,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/profile/:path*', '/login'],
+    matcher: ['/((?!_next|api|favicon.ico).*)'],
 }

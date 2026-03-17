@@ -19,5 +19,6 @@
   "enrichment": "Enrichment",
   "collecte": "Web AI Collection",
   "segments": "Segments",
-  "deduplication": "Deduplication"
+  "deduplication": "Deduplication",
+  "quotas": "Quotas & Governance"
 }

@@ -23,9 +23,9 @@ export function MainLayout({
 }: MainLayoutProps) {
   return (
     <SectionProvider>
-      <div className="min-h-screen bg-white dark:bg-black">
+      <div className="min-h-screen bg-white dark:bg-black relative">
         <Sidebar />
-        <div className="md:pl-[260px] min-h-screen bg-[var(--color-bg-page-tint)] dark:bg-black">
+        <div className="md:pl-[260px] min-h-screen bg-[var(--color-bg-page-tint)] dark:bg-black relative z-10 pointer-events-auto">
           <Header
             title={headerTitle}
             subtitle={headerSubtitle}

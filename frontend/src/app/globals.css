@@ -86,7 +86,7 @@ body {
   color: var(--color-text-primary);
 }
 
-/* Touche artistique - Halo vibrant très subtil */
+/* Touche artistique - Halo vibrant très subtil (must not block clicks) */
 body::before {
   content: '';
   position: fixed;
@@ -101,8 +101,9 @@ body::before {
     rgba(131, 58, 180, 0.03) 0%,
     transparent 40%
   );
-  pointer-events: none;
+  pointer-events: none !important;
   z-index: 0;
+  visibility: visible;
 }
 
 /* Scroll-reveal: initial state when not in view */

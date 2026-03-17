@@ -21,10 +21,12 @@ import {
   Copy,
   Sparkles,
   Globe,
+  ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/providers/I18nProvider';
 import { useSection, SectionType } from '@/providers/SectionProvider';
+
 
 export interface NavItem {
   href: string;
@@ -52,6 +54,7 @@ const crmLeadsItems: NavItem[] = [
   { href: '/segments', labelKey: 'segments', icon: <Layers size={20} /> },
   { href: '/deduplication', labelKey: 'deduplication', icon: <Copy size={20} /> },
   { href: '/enrichment', labelKey: 'enrichment', icon: <Sparkles size={20} /> },
+  { href: '/quotas', labelKey: 'quotas', icon: <ShieldCheck size={20} /> },
 ];
 
 const crmExploreItems: NavItem[] = [

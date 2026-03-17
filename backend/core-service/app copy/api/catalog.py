@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from supabase import create_client
 from pydantic import BaseModel
 
-router = APIRouter(prefix="", tags=["catalog"])
+router = APIRouter(prefix="/catalog", tags=["catalog"])
 
 SUPABASE_URL = "https://jwkjqowuponrqmxwhgsj.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3a2pxb3d1cG9ucnFteHdoZ3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExNzcxMTQsImV4cCI6MjA4Njc1MzExNH0.lkVrhdwCN321rZk_s5DtUMlrxSMf8ilAU5gPce7emBg"
@@ -14,7 +14,6 @@ class Item(BaseModel):
     title_fr: str
     description_fr: str | None = None
     price: float | None = None
-    category_id: int | None = None
 
 
 @router.get("/items")
@@ -95,21 +94,12 @@ def list_items_with_images():
 
         image = media_map.get(str(item["id"]))
 
-        # Gestion sécurisée du nom de catégorie (peut être un objet ou une liste selon Supabase)
-        category_obj = item.get("categories")
-        category_name = None
-        if category_obj:
-            if isinstance(category_obj, list) and len(category_obj) > 0:
-                category_name = category_obj[0].get("name")
-            elif isinstance(category_obj, dict):
-                category_name = category_obj.get("name")
-
         result.append({
             "id": item["id"],
             "title_fr": item["title_fr"],
             "description_fr": item["description_fr"],
             "price": item["price"],
-            "category": category_name,
+            "category": item["categories"]["name"] if item.get("categories") else None,
             "image_url": image
         })
 

@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # Routers
-from app.api import auth, ocr, catalog, suppliers
+from app.api import auth, ocr, catalog, suppliers  # ajoute suppliers ici
 
 app = FastAPI(
     title="Lynara Campaign Core Service",
@@ -27,8 +27,9 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(ocr.router, prefix="/ocr", tags=["ocr"])
 app.include_router(catalog.router, prefix="/catalog", tags=["catalog"])
-app.include_router(suppliers.router, prefix="/catalog/suppliers", tags=["suppliers"])
+app.include_router(suppliers.router, prefix="/catalog/suppliers", tags=["suppliers"])  # <-- important
 
+# Endpoints racine et santé
 @app.get("/")
 async def root():
     """Root endpoint."""

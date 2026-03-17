@@ -1,16 +1,19 @@
 'use client';
-
+import { useRouter } from "next/navigation";
 import { useSection } from '@/providers/SectionProvider';
 import { cn } from '@/lib/utils';
 import { LayoutGrid, ShoppingBag } from 'lucide-react';
 
 export function SectionSwitcher() {
   const { activeSection, setActiveSection } = useSection();
-
+  const router = useRouter();
   return (
     <div className="flex items-center gap-1 rounded-xl bg-gray-100 dark:bg-[#262626] p-1">
       <button
-        onClick={() => setActiveSection('crm')}
+        onClick={() => {
+          setActiveSection('crm');
+          router.push('/dashboard');
+        }}
         className={cn(
           'flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
           activeSection === 'crm'
@@ -22,7 +25,10 @@ export function SectionSwitcher() {
         <span>CRM</span>
       </button>
       <button
-        onClick={() => setActiveSection('catalogue')}
+        onClick={() => {
+          setActiveSection('catalogue');
+          router.push('/catalog');
+        }}
         className={cn(
           'flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
           activeSection === 'catalogue'

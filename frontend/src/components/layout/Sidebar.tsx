@@ -27,7 +27,6 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from '@/providers/I18nProvider';
 import { useSection, SectionType } from '@/providers/SectionProvider';
 
-
 export interface NavItem {
   href: string;
   labelKey: string;

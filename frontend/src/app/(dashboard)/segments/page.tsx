@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+const AI_URL = 'http://localhost:8000'
 const COMPANY_ID = '11111111-1111-1111-1111-111111111111'
 const FETCH_TIMEOUT_MS = 15000
 
@@ -39,7 +40,7 @@ type DynamicSegment = {
   name: string
   description: string
   rules: Rule[]
-  matched_leads: any[]
+  matched_count: number
   created_at: string
 }
 
@@ -66,7 +67,6 @@ export default function SegmentsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 6
 
-  // Stats
   const [stats, setStats] = useState({
     total_leads: 0,
     avg_score: 0,
@@ -74,16 +74,8 @@ export default function SegmentsPage() {
     total_segments: 0,
   })
 
-  // Dynamic segments
-  const [dynamicSegments, setDynamicSegments] = useState<DynamicSegment[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('dynamic_segments')
-      return saved ? JSON.parse(saved) : []
-    }
-    return []
-  })
+  const [dynamicSegments, setDynamicSegments] = useState<DynamicSegment[]>([])
 
-  // Rule builder
   const [showBuilder, setShowBuilder] = useState(false)
   const [builderName, setBuilderName] = useState('')
   const [builderDescription, setBuilderDescription] = useState('')
@@ -96,7 +88,18 @@ export default function SegmentsPage() {
 
   useEffect(() => {
     fetchData()
+    fetchDynamicSegments()
   }, [])
+
+  async function fetchDynamicSegments() {
+    try {
+      const res = await fetch(`${AI_URL}/ai-orchestration/segments?company_id=${COMPANY_ID}`)
+      const json = await res.json()
+      if (json.success) setDynamicSegments(json.data || [])
+    } catch {
+      console.error('Error loading dynamic segments')
+    }
+  }
 
   async function fetchData() {
     try {
@@ -125,7 +128,7 @@ export default function SegmentsPage() {
       })
     } catch (err) {
       const msg = err instanceof Error
-        ? (err.name === 'AbortError' ? 'Délai dépassé — vérifiez que l’API (port 3001) est démarrée.' : err.message)
+        ? (err.name === 'AbortError' ? "Délai dépassé — vérifiez que l'API (port 3001) est démarrée." : err.message)
         : 'Erreur lors du chargement'
       toast.error(msg)
     } finally {
@@ -172,16 +175,13 @@ export default function SegmentsPage() {
 
   function applyRulesToLeads(rules: Rule[], leadsData: any[]) {
     if (rules.length === 0) return []
-
     return leadsData.filter(lead => {
       let result = matchRule(lead, rules[0])
-
       for (let i = 1; i < rules.length; i++) {
         const ruleMatch = matchRule(lead, rules[i])
         if (rules[i].connector === 'AND') result = result && ruleMatch
         else result = result || ruleMatch
       }
-
       return result
     })
   }
@@ -189,9 +189,7 @@ export default function SegmentsPage() {
   function matchRule(lead: any, rule: Rule): boolean {
     const leadValue = lead[rule.field]
     const ruleValue = rule.value
-
     if (leadValue === undefined || leadValue === null) return false
-
     switch (rule.operator) {
       case '>': return Number(leadValue) > Number(ruleValue)
       case '<': return Number(leadValue) < Number(ruleValue)
@@ -214,34 +212,46 @@ export default function SegmentsPage() {
     }, 500)
   }
 
-  function handleSaveSegment() {
+  async function handleSaveSegment() {
     if (!builderName.trim()) return toast.error('Entrez un nom pour le segment')
     if (builderRules.length === 0) return toast.error('Ajoutez au moins une règle')
 
     const matched = applyRulesToLeads(builderRules, leads)
 
-    if (editingSegment) {
-      const updated = dynamicSegments.map(s =>
-        s.id === editingSegment.id
-          ? { ...s, name: builderName, description: builderDescription, rules: builderRules, matched_leads: matched }
-          : s
-      )
-      setDynamicSegments(updated)
-      localStorage.setItem('dynamic_segments', JSON.stringify(updated))
-      toast.success('Segment modifié!')
-    } else {
-      const newSegment: DynamicSegment = {
-        id: Date.now().toString(),
-        name: builderName,
-        description: builderDescription,
-        rules: builderRules,
-        matched_leads: matched,
-        created_at: new Date().toLocaleDateString('fr-FR')
+    try {
+      if (editingSegment) {
+        const res = await fetch(`${AI_URL}/ai-orchestration/segments/${editingSegment.id}?company_id=${COMPANY_ID}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: builderName,
+            description: builderDescription,
+            rules: builderRules,
+            matched_count: matched.length,
+          })
+        })
+        if (res.ok) {
+          toast.success('Segment modifié!')
+          fetchDynamicSegments()
+        }
+      } else {
+        const res = await fetch(`${AI_URL}/ai-orchestration/segments?company_id=${COMPANY_ID}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: builderName,
+            description: builderDescription,
+            rules: builderRules,
+            matched_count: matched.length,
+          })
+        })
+        if (res.ok) {
+          toast.success(`Segment créé! ${matched.length} leads correspondent`)
+          fetchDynamicSegments()
+        }
       }
-      const updated = [newSegment, ...dynamicSegments]
-      setDynamicSegments(updated)
-      localStorage.setItem('dynamic_segments', JSON.stringify(updated))
-      toast.success(`Segment créé! ${matched.length} leads correspondent`)
+    } catch {
+      toast.error('Erreur lors de la sauvegarde')
     }
 
     setBuilderName('')
@@ -257,17 +267,22 @@ export default function SegmentsPage() {
     setEditingSegment(segment)
     setBuilderName(segment.name)
     setBuilderDescription(segment.description)
-    setBuilderRules(segment.rules)
-    setPreviewLeads(segment.matched_leads)
+    setBuilderRules(segment.rules || [{ id: '1', field: 'score', operator: '>', value: '70', connector: 'AND' }])
+    setPreviewLeads([])
     setShowBuilder(true)
     setActiveTab('builder')
   }
 
-  function handleDeleteDynamicSegment(segmentId: string) {
-    const updated = dynamicSegments.filter(s => s.id !== segmentId)
-    setDynamicSegments(updated)
-    localStorage.setItem('dynamic_segments', JSON.stringify(updated))
-    toast.success('Segment supprimé!')
+  async function handleDeleteDynamicSegment(segmentId: string) {
+    try {
+      await fetch(`${AI_URL}/ai-orchestration/segments/${segmentId}?company_id=${COMPANY_ID}`, {
+        method: 'DELETE'
+      })
+      toast.success('Segment supprimé!')
+      fetchDynamicSegments()
+    } catch {
+      toast.error('Erreur lors de la suppression')
+    }
   }
 
   async function handleDeleteSegment(segmentId: string) {
@@ -290,7 +305,7 @@ export default function SegmentsPage() {
     const rows = segs.map(s => [
       s.name || s.segment_name,
       s.description || '',
-      s.lead_count || s.matched_leads?.length || 0,
+      s.lead_count || s.matched_count || 0,
       s.created_at || ''
     ])
     const csv = [headers, ...rows].map(r => r.join(',')).join('\n')
@@ -304,7 +319,7 @@ export default function SegmentsPage() {
   }
 
   const allSegments = [
-    ...dynamicSegments.map(s => ({ ...s, type: 'dynamic', lead_count: s.matched_leads?.length || 0 })),
+    ...dynamicSegments.map(s => ({ ...s, type: 'dynamic', lead_count: s.matched_count || 0 })),
     ...segments.map(s => ({ ...s, type: 'static' }))
   ]
 
@@ -349,7 +364,6 @@ export default function SegmentsPage() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-2 mb-6 border-b border-gray-200">
         {[
           { id: 'segments', label: '📂 Segments' },
@@ -363,7 +377,6 @@ export default function SegmentsPage() {
         ))}
       </div>
 
-      {/* SEGMENTS TAB */}
       {activeTab === 'segments' && (
         <div>
           {loading ? (
@@ -385,7 +398,7 @@ export default function SegmentsPage() {
             <>
               <div className="grid grid-cols-3 gap-4 mb-6">
                 {paginatedSegments.map((segment: any, index: number) => (
-                  <div key={segment.id|| index} className="bg-white rounded-lg border p-5 hover:shadow-md transition-shadow">
+                  <div key={segment.id || index} className="bg-white rounded-lg border p-5 hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start mb-3">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold ${segment.type === 'dynamic' ? 'bg-[#833AB4]' : 'bg-[#E1306C]'}`}>
                         {segment.type === 'dynamic' ? '🔧' : '📂'}
@@ -412,7 +425,7 @@ export default function SegmentsPage() {
                     )}
                     <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
                       <span className="text-xs text-[#E1306C] font-medium">
-                        👥 {segment.lead_count || segment.matched_leads?.length || 0} leads
+                        👥 {segment.lead_count || segment.matched_count || 0} leads
                       </span>
                       <div className="flex gap-1">
                         {segment.type === 'dynamic' && (
@@ -457,7 +470,6 @@ export default function SegmentsPage() {
         </div>
       )}
 
-      {/* STATS TAB */}
       {activeTab === 'stats' && (
         <div className="space-y-6">
           <div className="grid grid-cols-4 gap-4">
@@ -529,8 +541,8 @@ export default function SegmentsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {allSegments.map((segment: any) => (
-                  <tr key={segment.id} className="hover:bg-gray-50">
+                {allSegments.map((segment: any, index: number) => (
+                  <tr key={segment.id || index} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm font-medium text-gray-900">{segment.name || segment.segment_name}</td>
                     <td className="px-4 py-3">
                       <span className={`text-xs px-2 py-1 rounded-full ${segment.type === 'dynamic' ? 'bg-purple-100 text-purple-700' : 'bg-pink-100 text-pink-700'}`}>
@@ -539,9 +551,11 @@ export default function SegmentsPage() {
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">{segment.description || '-'}</td>
                     <td className="px-4 py-3 text-sm text-[#E1306C] font-medium">
-                      {segment.lead_count || segment.matched_leads?.length || 0}
+                      {segment.lead_count || segment.matched_count || 0}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{segment.created_at || '-'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">
+                      {segment.created_at ? new Date(segment.created_at).toLocaleDateString('fr-FR') : '-'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -550,7 +564,6 @@ export default function SegmentsPage() {
         </div>
       )}
 
-      {/* BUILDER TAB */}
       {activeTab === 'builder' && (
         <div className="grid grid-cols-3 gap-6">
           <div className="col-span-2 space-y-4">
@@ -660,7 +673,6 @@ export default function SegmentsPage() {
               </div>
             </div>
 
-            {/* Preview results */}
             {previewLeads.length > 0 && (
               <div className="bg-white rounded-lg border p-6">
                 <h3 className="text-lg font-semibold mb-4">👁️ Prévisualisation — {previewLeads.length} lead(s) correspondent</h3>
@@ -682,7 +694,6 @@ export default function SegmentsPage() {
             )}
           </div>
 
-          {/* Helper panel */}
           <div className="space-y-4">
             <div className="bg-white rounded-lg border p-5">
               <h3 className="text-sm font-semibold text-gray-700 mb-3">📚 Guide des champs</h3>

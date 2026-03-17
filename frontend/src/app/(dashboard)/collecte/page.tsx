@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 
 const AI_URL = 'http://localhost:8000'
@@ -27,13 +27,8 @@ export default function CollectePage() {
   const [filterSource, setFilterSource] = useState('all')
   const [sortBy, setSortBy] = useState('score')
   const [searchError, setSearchError] = useState<string | null>(null)
-  const [templates, setTemplates] = useState<any[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('collecte_templates')
-      return saved ? JSON.parse(saved) : []
-    }
-    return []
-  })
+  const [templates, setTemplates] = useState<any[]>([])
+  const [mounted, setMounted] = useState(false)
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
   const [templateName, setTemplateName] = useState('')
   const [historyFilterPeriod, setHistoryFilterPeriod] = useState('all')
@@ -57,6 +52,45 @@ export default function CollectePage() {
     { id: 'annuaires', label: 'Annuaires' },
     { id: 'social', label: 'Réseaux sociaux' },
   ]
+
+  useEffect(() => {
+    setMounted(true)
+    fetchTemplates()
+    fetchHistory()
+  }, [])
+
+  async function fetchTemplates() {
+    try {
+      const res = await fetch(`${AI_URL}/ai-orchestration/templates?company_id=${COMPANY_ID}`)
+      const json = await res.json()
+      if (json.success) setTemplates(json.data || [])
+    } catch {
+      console.error('Error loading templates')
+    }
+  }
+
+  async function fetchHistory() {
+    try {
+      const res = await fetch(`${AI_URL}/ai-orchestration/history?company_id=${COMPANY_ID}`)
+      const json = await res.json()
+      if (json.success) {
+        const formatted = (json.data || []).map((h: any) => ({
+          id: h.id,
+          keywords: h.keywords,
+          location: h.location,
+          industry: h.industry,
+          date: new Date(h.created_at).toLocaleDateString('fr-FR'),
+          timestamp: new Date(h.created_at).getTime(),
+          total_found: h.total_found,
+          imported: h.total_imported,
+          author: 'Moi'
+        }))
+        setHistory(formatted)
+      }
+    } catch {
+      console.error('Error loading history')
+    }
+  }
 
   const toggleSource = (sourceId: string) => {
     const newSources = config.sources.includes(sourceId)
@@ -112,18 +146,7 @@ export default function CollectePage() {
         message: json.message
       })
 
-      const historyEntry = {
-        id: json.job_id,
-        keywords: config.keywords,
-        location: config.location,
-        industry: config.industry,
-        date: new Date().toLocaleDateString('fr-FR'),
-        timestamp: Date.now(),
-        total_found: json.total,
-        imported: 0,
-        author: 'Moi'
-      }
-      setHistory(prev => [historyEntry, ...prev])
+      await fetchHistory()
       setActiveTab('results')
       toast.success(json.message)
     } catch (err: any) {
@@ -137,43 +160,52 @@ export default function CollectePage() {
     }
   }
 
-  const handleSaveTemplate = () => {
+  const handleSaveTemplate = async () => {
     if (!templateName.trim()) return toast.error('Entrez un nom pour le template')
-    const template = {
-      id: Date.now().toString(),
-      name: templateName,
-      ...config,
-      createdAt: new Date().toLocaleDateString('fr-FR')
+    try {
+      const res = await fetch(`${AI_URL}/ai-orchestration/templates?company_id=${COMPANY_ID}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: templateName, ...config })
+      })
+      const json = await res.json()
+      if (json.success) {
+        setTemplates(prev => [json.data[0], ...prev])
+        setTemplateName('')
+        setShowSaveTemplate(false)
+        toast.success('Template sauvegardé!')
+      }
+    } catch {
+      toast.error('Erreur lors de la sauvegarde du template')
     }
-    const updated = [template, ...templates]
-    setTemplates(updated)
-    localStorage.setItem('collecte_templates', JSON.stringify(updated))
-    setTemplateName('')
-    setShowSaveTemplate(false)
-    toast.success('Template sauvegardé!')
   }
 
   const handleLoadTemplate = (template: any) => {
     setConfig({
-      keywords: template.keywords,
-      location: template.location,
-      industry: template.industry,
-      target_persona: template.target_persona,
-      budget_target: template.budget_target,
-      volume: template.volume,
-      sources: template.sources,
-      quality_vs_quantity: template.quality_vs_quantity,
-      search_depth: template.search_depth,
+      keywords: template.keywords || '',
+      location: template.location || '',
+      industry: template.industry || '',
+      target_persona: template.target_persona || '',
+      budget_target: template.budget_target || '',
+      volume: template.volume || 10,
+      sources: template.sources || ['web', 'linkedin', 'annuaires'],
+      quality_vs_quantity: template.quality_vs_quantity || 'quality',
+      search_depth: template.search_depth || 'standard',
     })
     setActiveTab('search')
     toast.success(`Template "${template.name}" chargé!`)
   }
 
-  const handleDeleteTemplate = (templateId: string) => {
-    const updated = templates.filter(t => t.id !== templateId)
-    setTemplates(updated)
-    localStorage.setItem('collecte_templates', JSON.stringify(updated))
-    toast.success('Template supprimé!')
+  const handleDeleteTemplate = async (templateId: string) => {
+    try {
+      await fetch(`${AI_URL}/ai-orchestration/templates/${templateId}?company_id=${COMPANY_ID}`, {
+        method: 'DELETE'
+      })
+      setTemplates(prev => prev.filter(t => t.id !== templateId))
+      toast.success('Template supprimé!')
+    } catch {
+      toast.error('Erreur lors de la suppression')
+    }
   }
 
   const toggleLead = (lead: any) => {
@@ -230,10 +262,7 @@ export default function CollectePage() {
         if (res.ok) imported++
       }
 
-      setHistory(prev => prev.map(h =>
-        h.id === jobId ? { ...h, imported } : h
-      ))
-
+      await fetchHistory()
       toast.success(`${imported} lead(s) importé(s) dans le CRM!`)
       setSelectedLeads([])
       setResults(results.filter(r => !selectedLeads.find(s => s.temp_id === r.temp_id)))
@@ -308,8 +337,8 @@ export default function CollectePage() {
         {[
           { id: 'search', label: '🔍 Configuration' },
           { id: 'results', label: `📋 Résultats${results.length > 0 ? ` (${results.length})` : ''}` },
-          { id: 'history', label: `🕐 Historique${history.length > 0 ? ` (${history.length})` : ''}` },
-          { id: 'templates', label: `📌 Templates${templates.length > 0 ? ` (${templates.length})` : ''}` },
+          { id: 'history', label: `🕐 Historique${mounted && history.length > 0 ? ` (${history.length})` : ''}` },
+          { id: 'templates', label: `📌 Templates${mounted && templates.length > 0 ? ` (${templates.length})` : ''}` },
         ].map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id ? 'border-[#E1306C] text-[#E1306C]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
@@ -743,7 +772,7 @@ export default function CollectePage() {
                   {template.industry && <p className="text-xs text-gray-400">🏢 {template.industry}</p>}
                   <p className="text-xs text-gray-400 mt-1">👥 {template.volume} leads • {template.quality_vs_quantity}</p>
                   <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
-                    <span className="text-xs text-gray-400">{template.createdAt}</span>
+                    <span className="text-xs text-gray-400">{new Date(template.created_at).toLocaleDateString('fr-FR')}</span>
                     <button onClick={() => handleLoadTemplate(template)}
                       className="px-3 py-1 bg-[#E1306C] text-white text-xs rounded-lg hover:bg-[#FD1D1D]">
                       Utiliser

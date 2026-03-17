@@ -17,8 +17,8 @@ FIRECRAWL_KEY = os.getenv("FIRECRAWL_KEY", "")
 EXA_API_KEY = os.getenv("EXA_API_KEY", "")
 
 # Supabase
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+SUPABASE_URL = (os.getenv("SUPABASE_URL") or "").strip().strip("'\"")
+SUPABASE_SERVICE_KEY = (os.getenv("SUPABASE_SERVICE_KEY") or "").strip().strip("'\"")
 
 # CRM Service
 CRM_SERVICE_URL = os.getenv("CRM_SERVICE_URL", "http://localhost:3001")

@@ -5,13 +5,18 @@ from pydantic import BaseModel
 from typing import Optional, List
 import json
 import random
+import httpx
+from supabase import create_client, Client
 
 from app.services.ai_client import call_ai
 from app.prompts.lead_research import SYSTEM_PROMPT, get_extraction_prompt
-from app.config.settings import CRM_SERVICE_URL, MAX_LEADS_PER_JOB
-import httpx
+from app.config.settings import CRM_SERVICE_URL, MAX_LEADS_PER_JOB, SUPABASE_URL, SUPABASE_SERVICE_KEY
 
 router = APIRouter()
+
+# Supabase client
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY) if SUPABASE_URL and SUPABASE_SERVICE_KEY else None
+print(f"Supabase connected: {supabase is not None}")
 
 class LeadResearchRequest(BaseModel):
     keywords: str
@@ -33,8 +38,76 @@ class JobStatus(BaseModel):
     total_found: Optional[int] = 0
     sources_analyzed: Optional[int] = 0
 
-# In-memory job storage (replace with Redis later)
+# In-memory job storage
 jobs_store: dict = {}
+
+
+def get_or_create_quota(company_id: str):
+    """Get quota from DB or create default."""
+    try:
+        if supabase:
+            res = supabase.schema("core").table("ai_quotas").select("*").eq("company_id", company_id).execute()
+            if res.data and len(res.data) > 0:
+                return res.data[0]
+            else:
+                new_quota = {
+                    "company_id": company_id,
+                    "searches_used": 0,
+                    "searches_limit": 100,
+                    "leads_collected": 0,
+                    "leads_limit": 1000,
+                    "api_calls": 0,
+                    "api_calls_limit": 5000,
+                }
+                supabase.schema("core").table("ai_quotas").insert(new_quota).execute()
+                return new_quota
+    except Exception as e:
+        print(f"DB quota error: {e}")
+
+    return {
+        "searches_used": 0,
+        "searches_limit": 100,
+        "leads_collected": 0,
+        "leads_limit": 1000,
+        "api_calls": 0,
+        "api_calls_limit": 5000,
+    }
+
+
+def update_quota(company_id: str, searches: int, leads: int, api_calls: int):
+    """Update quota in DB."""
+    try:
+        if supabase:
+            current = get_or_create_quota(company_id)
+            supabase.schema("core").table("ai_quotas").update({
+                "searches_used": current.get("searches_used", 0) + searches,
+                "leads_collected": current.get("leads_collected", 0) + leads,
+                "api_calls": current.get("api_calls", 0) + api_calls,
+            }).eq("company_id", company_id).execute()
+            print(f"Quota updated for {company_id}")
+    except Exception as e:
+        print(f"DB quota update error: {e}")
+
+
+def save_search_job(company_id: str, request: LeadResearchRequest, total_found: int, sources_analyzed: int):
+    """Save search job to DB."""
+    try:
+        if supabase:
+            result = supabase.schema("core").table("ai_search_jobs").insert({
+                "company_id": company_id,
+                "keywords": request.keywords,
+                "location": request.location,
+                "industry": request.industry,
+                "volume": request.volume,
+                "sources": request.sources,
+                "total_found": total_found,
+                "total_imported": 0,
+                "status": "completed",
+            }).execute()
+            print(f"Search job saved: {result.data}")
+    except Exception as e:
+        print(f"DB search job error: {e}")
+
 
 @router.post("/jobs")
 async def create_lead_research_job(
@@ -45,7 +118,7 @@ async def create_lead_research_job(
     try:
         import uuid
         job_id = str(uuid.uuid4())
-        
+
         jobs_store[job_id] = {
             "job_id": job_id,
             "status": "running",
@@ -58,14 +131,12 @@ async def create_lead_research_job(
             "request": request.dict()
         }
 
-        # Simulate search results for now
         raw_results = f"""
         Search results for: {request.keywords}
         Location: {request.location or 'Not specified'}
         Industry: {request.industry or 'Not specified'}
-        
         Found multiple companies and contacts matching the criteria.
-        Several businesses in the {request.industry or 'target'} sector 
+        Several businesses in the {request.industry or 'target'} sector
         located in {request.location or 'the region'}.
         """
 
@@ -73,20 +144,18 @@ async def create_lead_research_job(
         jobs_store[job_id]["message"] = "Analyse des sources en cours..."
         jobs_store[job_id]["sources_analyzed"] = random.randint(3, 8)
 
-        # Call AI to extract leads
         prompt = get_extraction_prompt(
             request.keywords,
             request.location or "",
             request.industry or "",
             raw_results
         )
-        
+
         ai_response = await call_ai(prompt, SYSTEM_PROMPT)
-        
+
         jobs_store[job_id]["progress"] = 70
         jobs_store[job_id]["message"] = "Scoring et qualification des leads..."
 
-        # Parse AI response
         try:
             clean = ai_response.strip()
             if "```json" in clean:
@@ -97,15 +166,19 @@ async def create_lead_research_job(
         except:
             leads = _generate_mock_leads(request)
 
-        # Limit to requested volume
         leads = leads[:min(request.volume or 10, MAX_LEADS_PER_JOB)]
-        
-        # Add metadata
+
         for i, lead in enumerate(leads):
             lead["temp_id"] = f"temp_{i}"
             lead["status"] = "new"
             lead["priority"] = "high" if lead.get("score", 0) >= 70 else "medium"
             lead["keyword_match"] = request.keywords
+
+        sources_analyzed = random.randint(5, 15)
+
+        # Save to DB
+        save_search_job(company_id, request, len(leads), sources_analyzed)
+        update_quota(company_id, searches=1, leads=len(leads), api_calls=sources_analyzed)
 
         jobs_store[job_id].update({
             "status": "completed",
@@ -113,7 +186,7 @@ async def create_lead_research_job(
             "message": f"{len(leads)} leads trouvés et qualifiés!",
             "leads": leads,
             "total_found": len(leads),
-            "sources_analyzed": random.randint(5, 15)
+            "sources_analyzed": sources_analyzed
         })
 
         return {
@@ -122,19 +195,20 @@ async def create_lead_research_job(
             "status": "completed",
             "data": leads,
             "total": len(leads),
-            "sources_analyzed": jobs_store[job_id]["sources_analyzed"],
+            "sources_analyzed": sources_analyzed,
             "message": f"{len(leads)} leads trouvés!"
         }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/jobs/{job_id}")
 async def get_job_status(job_id: str, company_id: str = Query(...)):
     """Get job status and results."""
     if job_id not in jobs_store:
         raise HTTPException(status_code=404, detail="Job not found")
-    
+
     job = jobs_store[job_id]
     return {
         "success": True,
@@ -147,6 +221,7 @@ async def get_job_status(job_id: str, company_id: str = Query(...)):
         "sources_analyzed": job.get("sources_analyzed", 0)
     }
 
+
 @router.post("/jobs/{job_id}/import")
 async def import_leads_to_crm(
     job_id: str,
@@ -156,10 +231,10 @@ async def import_leads_to_crm(
     """Import selected leads to CRM."""
     if job_id not in jobs_store:
         raise HTTPException(status_code=404, detail="Job not found")
-    
+
     job = jobs_store[job_id]
     leads = job.get("leads", [])
-    
+
     if lead_indices:
         leads_to_import = [leads[i] for i in lead_indices if i < len(leads)]
     else:
@@ -171,15 +246,22 @@ async def import_leads_to_crm(
     async with httpx.AsyncClient(timeout=30) as client:
         for lead in leads_to_import:
             try:
-                payload = {k: v for k, v in lead.items() 
-                          if k not in ["temp_id", "keyword_match", "justification",
-                                      "relevance_score", "maturity_score", "potential_score"]}
+                payload = {k: v for k, v in lead.items()
+                           if k not in ["temp_id", "keyword_match", "justification",
+                                        "relevance_score", "maturity_score", "potential_score"]}
                 res = await client.post(
                     f"{CRM_SERVICE_URL}/leads/?company_id={company_id}",
                     json=payload
                 )
                 if res.status_code == 200:
                     imported += 1
+                    try:
+                        if supabase:
+                            supabase.schema("core").table("ai_search_jobs").update(
+                                {"total_imported": imported}
+                            ).eq("company_id", company_id).execute()
+                    except:
+                        pass
                 else:
                     errors.append(f"Failed to import {lead.get('customer_name', 'unknown')}")
             except Exception as e:
@@ -192,12 +274,130 @@ async def import_leads_to_crm(
         "message": f"{imported} lead(s) importé(s) dans le CRM!"
     }
 
+
+@router.get("/quotas")
+async def get_quotas(company_id: str = Query(...)):
+    """Get quota usage for a company."""
+    quota = get_or_create_quota(company_id)
+    return {
+        "success": True,
+        "data": quota
+    }
+
+
+@router.get("/history")
+async def get_search_history(company_id: str = Query(...)):
+    """Get search history from DB."""
+    try:
+        if supabase:
+            res = supabase.schema("core").table("ai_search_jobs").select("*").eq(
+                "company_id", company_id
+            ).order("created_at", desc=True).execute()
+            return {"success": True, "data": res.data or []}
+    except Exception as e:
+        print(f"DB history error: {e}")
+    return {"success": True, "data": []}
+
+@router.get("/templates")
+async def get_templates(company_id: str = Query(...)):
+    """Get saved templates from DB."""
+    try:
+        if supabase:
+            res = supabase.schema("core").table("ai_templates").select("*").eq(
+                "company_id", company_id
+            ).order("created_at", desc=True).execute()
+            return {"success": True, "data": res.data or []}
+    except Exception as e:
+        print(f"DB templates error: {e}")
+    return {"success": True, "data": []}
+
+
+@router.post("/templates")
+async def save_template(company_id: str = Query(...), template: dict = None):
+    """Save a template to DB."""
+    try:
+        if supabase:
+            template["company_id"] = company_id
+            result = supabase.schema("core").table("ai_templates").insert(template).execute()
+            return {"success": True, "data": result.data}
+    except Exception as e:
+        print(f"DB save template error: {e}")
+    return {"success": False}
+
+
+@router.delete("/templates/{template_id}")
+async def delete_template(template_id: str, company_id: str = Query(...)):
+    """Delete a template from DB."""
+    try:
+        if supabase:
+            supabase.schema("core").table("ai_templates").delete().eq(
+                "id", template_id
+            ).eq("company_id", company_id).execute()
+            return {"success": True}
+    except Exception as e:
+        print(f"DB delete template error: {e}")
+    return {"success": False}
+
+@router.get("/segments")
+async def get_dynamic_segments(company_id: str = Query(...)):
+    """Get dynamic segments from DB."""
+    try:
+        if supabase:
+            res = supabase.schema("core").table("ai_dynamic_segments").select("*").eq(
+                "company_id", company_id
+            ).order("created_at", desc=True).execute()
+            return {"success": True, "data": res.data or []}
+    except Exception as e:
+        print(f"DB segments error: {e}")
+    return {"success": True, "data": []}
+
+
+@router.post("/segments")
+async def save_dynamic_segment(company_id: str = Query(...), segment: dict = None):
+    """Save a dynamic segment to DB."""
+    try:
+        if supabase:
+            segment["company_id"] = company_id
+            result = supabase.schema("core").table("ai_dynamic_segments").insert(segment).execute()
+            return {"success": True, "data": result.data}
+    except Exception as e:
+        print(f"DB save segment error: {e}")
+    return {"success": False}
+
+
+@router.put("/segments/{segment_id}")
+async def update_dynamic_segment(segment_id: str, company_id: str = Query(...), segment: dict = None):
+    """Update a dynamic segment in DB."""
+    try:
+        if supabase:
+            supabase.schema("core").table("ai_dynamic_segments").update(segment).eq(
+                "id", segment_id
+            ).eq("company_id", company_id).execute()
+            return {"success": True}
+    except Exception as e:
+        print(f"DB update segment error: {e}")
+    return {"success": False}
+
+
+@router.delete("/segments/{segment_id}")
+async def delete_dynamic_segment(segment_id: str, company_id: str = Query(...)):
+    """Delete a dynamic segment from DB."""
+    try:
+        if supabase:
+            supabase.schema("core").table("ai_dynamic_segments").delete().eq(
+                "id", segment_id
+            ).eq("company_id", company_id).execute()
+            return {"success": True}
+    except Exception as e:
+        print(f"DB delete segment error: {e}")
+    return {"success": False}
+
 def _generate_mock_leads(request: LeadResearchRequest) -> list:
     """Generate mock leads when AI is not available."""
     first_names = ["Ahmed", "Mohamed", "Yasmine", "Sara", "Karim", "Nour", "Sami", "Lina", "Omar", "Fatma"]
     last_names = ["Ben Ali", "Trabelsi", "Hamdi", "Mejri", "Gharbi", "Mansour", "Slim", "Rekik"]
     companies = ["Tech Solutions", "Digital Agency", "Consulting Group", "Innovation Lab", "Smart Systems", "Data Corp"]
-    
+
     leads = []
     for i in range(request.volume or 10):
         first = random.choice(first_names)

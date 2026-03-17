@@ -1,30 +1,36 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { PageHeader, Card, Button, Input, Avatar, Tabs } from '@/components';
 import { Upload, Instagram, Globe } from 'lucide-react';
 import { ToastService } from '@/app/services/toast.service';
 import { TranslationService } from '@/app/services/translation.service';
 
 type Profile = {
-    user_id: string;
-    email: string;
-    full_name: string;
-    phone: string;
-    is_admin: boolean;
+    user_id:    string;
+    email:      string;
+    full_name:  string;
+    phone:      string;
+    is_admin:   boolean;
+    avatar_url: string | null;
 }
 
 export default function ProfileMePage() {
   const [activeTab, setActiveTab] = useState('personal');
-  const toastService = new ToastService();
-  const translator = new TranslationService();
+  const fileInputRef              = useRef<HTMLInputElement>(null);
+  const [upLoading, setUpLoading] = useState(false);
+  const toastService              = new ToastService();
+  const translator                = new TranslationService();
+
   const [profile, setProfile] = useState<Profile>({
-        user_id: '',
-        email: '',
-        full_name: '',
-        phone: '',
-        is_admin: false,
+        user_id:    '',
+        email:      '',
+        full_name:  '',
+        phone:      '',
+        is_admin:   false,
+        avatar_url: null,
     });
+
   const [form, setForm] = useState({
     full_name: '', email: '', phone: '',
   });
@@ -40,32 +46,63 @@ export default function ProfileMePage() {
             method: 'GET',
             credentials: 'include',
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Unauthorized');
-            }
-            return response.json();
+        .then(async response => {
+            const body = await response.json();
+            if (!response.ok) throw body.detail;
+            return body;
         })
-        .then(data => {
+        .then(response => {
+            const data = response.data;
             setProfile({
-                user_id: data.user_id || '',
-                email: data.email || '',
-                full_name: data.full_name || '',
-                phone: data.phone || '',
-                is_admin: data.is_admin || false,
+                user_id:    data.user_id    || '',
+                email:      data.email      || '',
+                full_name:  data.full_name  || '',
+                phone:      data.phone      || '',
+                is_admin:   data.is_admin   || false,
+                avatar_url: data.avatar_url || null,
             });
             setForm({
                 full_name: data.full_name || '',
-                email: data.email || '',
-                phone: data.phone || '',
+                email:     data.email     || '',
+                phone:     data.phone     || '',
             });
         })
-        .catch((error) => {
+        .catch(() => {
             toastService.displayToast(translator.translate('profile', 'fetchError'), 'error');
         });
-  }
+  };
 
   useEffect(() => { fetchProfile(); }, []);
+
+  const handleAvatarClick = () => fileInputRef.current?.click();
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUpLoading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile/me/avatar`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+    })
+    .then(async res => {
+        const body = await res.json();
+        if (!res.ok) throw body.detail;
+        return body;
+    })
+    .then((response) => {
+        setProfile(prev => ({ ...prev, avatar_url: response.data.avatar_url }));
+        toastService.displayToast(translator.translate('profile', 'avatarSuccess'), 'success');
+    })
+    .catch((detail) => {
+        toastService.displayToast(detail, 'error');
+    })
+    .finally(() => setUpLoading(false));
+  };
 
   const handleSave = () => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile/me`, {
@@ -78,15 +115,18 @@ export default function ProfileMePage() {
         email:     form.email !== profile.email ? form.email : null,
       }),
     })
-    .then(res => {
-      if (!res.ok) throw new Error('Update failed');
-      return res.json();
+    .then(async res => {
+      const body = await res.json();
+      if (!res.ok) throw body.detail;
+      return body;
     })
     .then(() => {
       toastService.displayToast(translator.translate('profile', 'updateSuccess'), 'success');
       fetchProfile();
     })
-    .catch(() => toastService.displayToast(translator.translate('profile', 'updateError'), 'error'));
+    .catch((detail) => {
+      toastService.displayToast(detail, 'error');
+    });
   };
 
   const handleCancel = () => {
@@ -109,16 +149,47 @@ export default function ProfileMePage() {
       {activeTab === 'personal' && (
         <Card variant="elevated" padding="lg" className="space-y-8 rounded-2xl border border-gray-100 dark:border-[#262626] shadow-card">
           <div className="flex items-center gap-6">
-            <Avatar size="xl" src={null} fallback="RD" className="ring-2 ring-gray-100 dark:ring-[#262626]" />
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+
+            <div className="relative cursor-pointer" onClick={handleAvatarClick}>
+              <Avatar
+                size="xl"
+                src={profile.avatar_url}
+                fallback={profile.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                className="ring-2 ring-gray-100 dark:ring-[#262626]"
+              />
+              {upLoading && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
+                  <span className="text-white text-xs">...</span>
+                </div>
+              )}
+            </div>
+
             <div>
-              <Button variant="outline" leftIcon={<Upload size={16} />}>
-                {translator.translate('profile', 'uploadAvatar')}
+              <Button
+                variant="outline"
+                leftIcon={<Upload size={16} />}
+                onClick={handleAvatarClick}
+                disabled={upLoading}
+              >
+                {upLoading
+                  ? translator.translate('profile', 'uploading')
+                  : translator.translate('profile', 'uploadAvatar')
+                }
               </Button>
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                JPG, GIF or PNG. Max size of 800K
+                {translator.translate('profile', 'avatarHint')}
               </p>
             </div>
           </div>
+
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-900 dark:text-white">
@@ -174,7 +245,9 @@ export default function ProfileMePage() {
               </div>
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-white">Instagram</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Connecté en tant que @lynara_app</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {translator.translate('profile', 'connectedAs')} @lynara_app
+                </p>
               </div>
             </div>
             <Button variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-900/30">
@@ -188,7 +261,9 @@ export default function ProfileMePage() {
               </div>
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-white">Google</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Non connecté</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {translator.translate('profile', 'notConnected')}
+                </p>
               </div>
             </div>
             <Button variant="primary">{translator.translate('profile', 'connect')}</Button>

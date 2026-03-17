@@ -39,7 +39,7 @@ export default function ProfileLayout({
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black flex">
+    <div className="h-screen bg-white dark:bg-black flex overflow-hidden">
       {/* Sidebar - like capture */}
       <aside className="hidden md:flex w-64 flex-col border-r border-gray-100 dark:border-[#262626] bg-gray-50/50 dark:bg-[#0A0A0A]">
         <div className="p-5 border-b border-gray-100 dark:border-[#262626]">
@@ -89,7 +89,7 @@ export default function ProfileLayout({
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 min-w-0">
+      <main className="flex-1 min-w-0 overflow-y-auto">
         {children}
       </main>
     </div>

@@ -1,6 +1,6 @@
-"""FastAPI application - Auth, OCR, logique métier."""
-
+"""FastAPI application - Auth, OCR, Catalogue, Suppliers, logique métier."""
 from dotenv import load_dotenv
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import auth, ocr, profile, company, catalog, suppliers
@@ -9,10 +9,11 @@ load_dotenv()
 
 app = FastAPI(
     title="Lynara Campaign Core Service",
-    description="Authentification, OCR, et logique métier backend",
+    description="Authentification, OCR, Catalogue et logique métier backend",
     version="1.0.0",
 )
 
+# Middleware CORS pour le frontend local
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
@@ -21,6 +22,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Inclusion des routers
 # Inclusion des routers
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(ocr.router, prefix="/ocr", tags=["ocr"])
@@ -34,9 +36,8 @@ async def root():
     """Root endpoint."""
     return {
         "service": "lynara-campaign-core-service",
-        "message": "Auth, OCR, logique métier",
+        "message": "Auth, OCR, Catalogue et logique métier",
     }
-
 
 @app.get("/health")
 async def health():

@@ -1,13 +1,11 @@
 from fastapi import APIRouter, HTTPException
-from supabase import create_client
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from app.shared.supabase_service import get_supabase
 
-router = APIRouter(prefix="/catalog", tags=["catalog"])
+router = APIRouter(prefix="", tags=["catalog"])
 
-SUPABASE_URL = "https://jwkjqowuponrqmxwhgsj.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3a2pxb3d1cG9ucnFteHdoZ3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExNzcxMTQsImV4cCI6MjA4Njc1MzExNH0.lkVrhdwCN321rZk_s5DtUMlrxSMf8ilAU5gPce7emBg"
-
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = get_supabase()
 
 
 # ─────────────────────────────────────────────
@@ -18,6 +16,7 @@ class Item(BaseModel):
     title_fr: str
     description_fr: str | None = None
     price: float | None = None
+    category_id: int | None = None
 
 class VariantCreate(BaseModel):
     name: str
@@ -490,206 +489,3 @@ def update_positionnement(item_id: str, body: PositionnementUpdate):
     if not response.data:
         raise HTTPException(status_code=404, detail="Item introuvable")
     return response.data[0]
-# ─────────────────────────────────────────────
-# SCORE DE COMPLÉTUDE (CAT-08-01)
-# ─────────────────────────────────────────────
-
-def calculate_completeness(item: dict, has_image: bool, has_variants: bool, has_profiles: bool) -> int:
-    score = 0
-    if item.get("title_fr"):          score += 10
-    if item.get("description_fr"):    score += 15
-    if item.get("price"):             score += 10
-    if has_image:                     score += 20
-    if item.get("categories") and item["categories"].get("name"): score += 10
-    if item.get("positioning"):       score += 10
-    if item.get("keywords") and len(item.get("keywords", [])) > 0: score += 10
-    if has_variants:                  score += 10
-    if has_profiles:                  score += 5
-    return score
-
-
-@router.get("/items/{item_id}/completeness")
-def get_completeness(item_id: str):
-    # get item
-    item = (
-        supabase.postgrest.schema("catalog")
-        .table("items")
-        .select("*, categories(name)")
-        .eq("id", item_id)
-        .single()
-        .execute()
-    ).data
-
-    # check image
-    media = (
-        supabase.postgrest.schema("catalog")
-        .table("media_assets")
-        .select("id")
-        .eq("item_id", item_id)
-        .execute()
-    ).data
-    has_image = len(media) > 0
-
-    # check variants
-    variants = (
-        supabase.postgrest.schema("catalog")
-        .table("item_variants")
-        .select("id")
-        .eq("item_id", item_id)
-        .execute()
-    ).data
-    has_variants = len(variants) > 0
-
-    # check profiles
-    profiles = (
-        supabase.postgrest.schema("catalog")
-        .table("item_target_profiles")
-        .select("id")
-        .eq("item_id", item_id)
-        .execute()
-    ).data
-    has_profiles = len(profiles) > 0
-
-    score = calculate_completeness(item, has_image, has_variants, has_profiles)
-
-    return {
-        "score": score,
-        "details": {
-            "title_fr":    bool(item.get("title_fr")),
-            "description": bool(item.get("description_fr")),
-            "price":       bool(item.get("price")),
-            "image":       has_image,
-            "category": bool(item.get("categories") and item["categories"].get("name")),
-            "positioning": bool(item.get("positioning")),
-            "keywords":    bool(item.get("keywords") and len(item.get("keywords", [])) > 0),
-            "variants":    has_variants,
-            "profiles":    has_profiles,
-        }
-    }
-    # ─────────────────────────────────────────────
-# ITEM TYPES & CHAMPS OBLIGATOIRES (CAT-08-02)
-# ─────────────────────────────────────────────
-
-@router.get("/item-types")
-def list_item_types():
-    response = (
-        supabase.postgrest.schema("catalog")
-        .table("item_types")
-        .select("*")
-        .execute()
-    )
-    return response.data
-
-
-@router.get("/items/{item_id}/mandatory-check")
-def check_mandatory_fields(item_id: str):
-    # get item with category
-    item = (
-        supabase.postgrest.schema("catalog")
-        .table("items")
-        .select("*")
-        .eq("id", item_id)
-        .single()
-        .execute()
-    ).data
-
-    item_type = None
-    item_type = None
-    item_type_id = item.get("item_type_id")
-    if item_type_id:
-        all_types = (
-            supabase.postgrest.schema("catalog")
-            .table("item_types")
-            .select("id, code, config")
-            .execute()
-        ).data
-        for t in all_types:
-            if t["id"] == item_type_id:
-                item_type = t
-                break
-
-    if not item_type:
-        return {"item_type": None, "missing": [], "complete": True}
-
-    config      = item_type.get("config", {})
-    mandatory   = config.get("mandatory_fields", [])
-    recommended = config.get("recommended_fields", [])
-
-    # check media
-    media = (
-        supabase.postgrest.schema("catalog")
-        .table("media_assets")
-        .select("id")
-        .eq("item_id", item_id)
-        .execute()
-    ).data
-    has_image = len(media) > 0
-
-    # check variants
-    variants = (
-        supabase.postgrest.schema("catalog")
-        .table("item_variants")
-        .select("id")
-        .eq("item_id", item_id)
-        .execute()
-    ).data
-    has_variants = len(variants) > 0
-
-    # check profiles
-    profiles = (
-        supabase.postgrest.schema("catalog")
-        .table("item_target_profiles")
-        .select("id")
-        .eq("item_id", item_id)
-        .execute()
-    ).data
-    has_profiles = len(profiles) > 0
-
-    field_values = {
-        "title_fr":        bool(item.get("title_fr")),
-        "description_fr":  bool(item.get("description_fr")),
-        "price":           bool(item.get("price")),
-        "image":           has_image,
-        "category":        bool(item.get("categories") and item["categories"].get("name")),
-        "positioning":     bool(item.get("positioning")),
-        "keywords":        bool(item.get("keywords") and len(item.get("keywords", [])) > 0),
-        "variants":        has_variants,
-        "profiles":        has_profiles,
-        "city":            bool(item.get("city")),
-        "conditions_vente":bool(item.get("conditions_vente")),
-        "delai_livraison": bool(item.get("delai_livraison")),
-    }
-
-    missing     = [f for f in mandatory   if not field_values.get(f, False)]
-    recommended_missing = [f for f in recommended if not field_values.get(f, False)]
-
-    return {
-        "item_type":            item_type["code"],
-        "mandatory":            mandatory,
-        "missing":              missing,
-        "recommended_missing":  recommended_missing,
-        "complete":             len(missing) == 0,
-    }
-@router.get("/debug/item/{item_id}")
-def debug_item(item_id: str):
-    item = (
-        supabase.postgrest.schema("catalog")
-        .table("items")
-        .select("id, title_fr, item_type_id")
-        .eq("id", item_id)
-        .single()
-        .execute()
-    ).data
-    
-    item_types = (
-        supabase.postgrest.schema("catalog")
-        .table("item_types")
-        .select("id, code")
-        .execute()
-    ).data
-    
-    return {
-        "item": item,
-        "item_type_id": item.get("item_type_id"),
-        "all_item_types": item_types
-    }

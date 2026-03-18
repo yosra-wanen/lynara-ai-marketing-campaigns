@@ -139,8 +139,6 @@ const [posForm,    setPosForm]    = useState({
 });
 const [posSaving,  setPosSaving]  = useState(false);
 const [newKeyword, setNewKeyword] = useState("");
-const [completeness, setCompleteness] = useState<{score: number, details: Record<string, boolean>} | null>(null);
-const [mandatoryCheck, setMandatoryCheck] = useState<{missing: string[], complete: boolean, item_type: string | null} | null>(null);
 
   // keyboard nav for lightbox
   const handleKey = useCallback((e: KeyboardEvent) => {
@@ -162,12 +160,12 @@ const [mandatoryCheck, setMandatoryCheck] = useState<{missing: string[], complet
     if (activeTab === "options"    && options.length === 0)     fetchOptions();
     if (activeTab === "cible"      && allProfiles.length === 0) fetchCible();
     if (activeTab === "conditions" && !conditions)              fetchConditions();
-    
+    if (activeTab === "infos" && !posForm.positioning && !posForm.city) fetchPositionnement();
   }, [activeTab]);
 
   async function loadData() {
     setLoading(true);
-    await Promise.all([fetchItem(), fetchImages(), fetchCompleteness(), fetchMandatoryCheck()]);
+    await Promise.all([fetchItem(), fetchImages()]);
     setLoading(false);
   }
 
@@ -322,18 +320,7 @@ const [mandatoryCheck, setMandatoryCheck] = useState<{missing: string[], complet
       });
     } catch { /* silent */ }
   }
-  async function fetchCompleteness() {
-    try {
-      const data = await (await fetch(`${API}/catalog/items/${id}/completeness`)).json();
-      setCompleteness(data);
-    } catch { /* silent */ }
-  }
-  async function fetchMandatoryCheck() {
-    try {
-      const data = await (await fetch(`${API}/catalog/items/${id}/mandatory-check`)).json();
-      setMandatoryCheck(data);
-    } catch { /* silent */ }
-  }
+  
   async function savePositionnement() {
     setPosSaving(true);
     try {
@@ -447,80 +434,7 @@ const [mandatoryCheck, setMandatoryCheck] = useState<{missing: string[], complet
                 )}
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white leading-tight">{item.title_fr}</h1>
               </div>
-              {/* COMPLETENESS SCORE */}
-{completeness !== null && (
-  <div className="bg-white dark:bg-[#1A1A1A] rounded-2xl border border-gray-200 dark:border-white/5 p-4">
-    <div className="flex items-center justify-between mb-2">
-      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Complétude</p>
-      <span className={`text-sm font-bold ${
-        completeness.score >= 80 ? "text-green-600" :
-        completeness.score >= 50 ? "text-amber-500" :
-        "text-red-500"
-      }`}>{completeness.score}%</span>
-    </div>
-    <div className="w-full bg-gray-100 dark:bg-[#2A2A2A] rounded-full h-2 mb-3">
-      <div
-        className={`h-2 rounded-full transition-all duration-500 ${
-          completeness.score >= 80 ? "bg-green-500" :
-          completeness.score >= 50 ? "bg-amber-500" :
-          "bg-red-500"
-        }`}
-        style={{ width: `${completeness.score}%` }}
-      />
-    </div>
-    <div className="grid grid-cols-3 gap-1">
-      {Object.entries(completeness.details).map(([key, val]) => (
-        <div key={key} className={`flex items-center gap-1 text-xs ${val ? "text-green-600 dark:text-green-400" : "text-gray-400"}`}>
-          <span>{val ? "✓" : "○"}</span>
-          <span className="truncate">{
-            key === "title_fr"    ? "Titre" :
-            key === "description" ? "Desc." :
-            key === "price"       ? "Prix" :
-            key === "image"       ? "Image" :
-            key === "category"    ? "Catég." :
-            key === "positioning" ? "Posit." :
-            key === "keywords"    ? "Mots-clés" :
-            key === "variants"    ? "Variants" :
-            "Profils"
-          }</span>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
-{/* MANDATORY CHECK */}
-{mandatoryCheck && !mandatoryCheck.complete && mandatoryCheck.missing.length > 0 && (
-  <div className="bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-200 dark:border-red-800/30 p-4">
-    <div className="flex items-center gap-2 mb-2">
-      <span className="text-red-500 text-sm">⚠️</span>
-      <p className="text-xs font-medium text-red-600 dark:text-red-400 uppercase tracking-wide">
-        Champs obligatoires manquants
-      </p>
-    </div>
-    <div className="space-y-1">
-      {mandatoryCheck.missing.map((field, i) => (
-        <div key={i} className="flex items-center gap-2 text-xs text-red-500 dark:text-red-400">
-          <span>○</span>
-          <span>{
-            field === "title_fr"        ? "Titre FR" :
-            field === "description_fr"  ? "Description FR" :
-            field === "price"           ? "Prix" :
-            field === "image"           ? "Image principale" :
-            field === "category"        ? "Catégorie" :
-            field === "positioning"     ? "Positionnement" :
-            field === "keywords"        ? "Mots-clés" :
-            field === "variants"        ? "Variantes" :
-            field === "profiles"        ? "Profils cibles" :
-            field === "city"            ? "Ville" :
-            field === "conditions_vente"? "Conditions de vente" :
-            field === "delai_livraison" ? "Délai de livraison" :
-            field
-          }</span>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
+
               <div className="bg-white dark:bg-[#1A1A1A] rounded-2xl border border-gray-200 dark:border-white/5 p-5">
                 <p className="text-xs text-gray-400 mb-1 uppercase tracking-wide font-medium">Prix</p>
                 <p className="text-3xl font-bold text-[#7C4DFF]">{formatPrice(item.price, item.currency)}</p>

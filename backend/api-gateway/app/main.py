@@ -1,9 +1,9 @@
-"""FastAPI API Gateway - Main entry point."""
+"""FastAPI API Gateway - Point d'entrée principal."""
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import health, leads,core
+from app.api import health, leads
 
 app = FastAPI(
     title="Lynara Campaign API Gateway",
@@ -13,10 +13,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -24,8 +21,6 @@ app.add_middleware(
 
 app.include_router(health.router, prefix="/health", tags=["health"])
 app.include_router(leads.router, prefix="/leads", tags=["leads"])
-app.include_router(core.router, tags=["core"]) 
-
 
 
 @app.get("/")

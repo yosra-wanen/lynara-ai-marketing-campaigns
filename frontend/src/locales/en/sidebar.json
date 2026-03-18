@@ -14,5 +14,10 @@
   "automations": "Automations",
   "settings": "Settings",
   "profile": "My Profile",
-  "logout": "Logout"
+  "logout": "Logout",
+  "leads": "Leads",
+  "enrichment": "Enrichment",
+  "collecte": "Web AI Collection",
+  "segments": "Segments",
+  "deduplication": "Deduplication"
 }

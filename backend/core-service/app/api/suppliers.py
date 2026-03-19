@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from app.api.catalog import supabase
-import postgrest
+import postgrest 
 
 router = APIRouter(prefix="", tags=["suppliers"])
 

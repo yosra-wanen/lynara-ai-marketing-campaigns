@@ -1,9 +1,11 @@
 "use client";
 
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, Pencil, Eye, Search, User, Trash2 } from "lucide-react";
-
+import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 type Supplier = {
   id: string;
   name: string;
@@ -11,9 +13,12 @@ type Supplier = {
 };
 
 export default function SuppliersPage() {
+  const router = useRouter();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [search, setSearch] = useState("");
+
+  
 
   const filteredSuppliers = suppliers.filter((supplier) =>
     (supplier.name || "").toLowerCase().includes(search.toLowerCase())
@@ -56,7 +61,11 @@ export default function SuppliersPage() {
   }
 
   return (
+    
     <div className="space-y-6 max-w-7xl mx-auto p-4 md:p-6">
+      <button onClick={() => router.push("/catalog")} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-[#7C4DFF] transition mb-6">
+    <ArrowLeft size={15} /> Retour au catalogue
+    </button>
       {/* HEADER & FILTERS */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="bg-white dark:bg-[#1E1E1E] p-4 rounded-xl shadow-sm border border-gray-200 dark:border-white/5 flex-grow max-w-md">

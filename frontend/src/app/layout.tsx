@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { I18nProvider } from '@/providers/I18nProvider';
+import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
   title: 'Lynara Campaign - Plateforme de campagnes marketing multicanales',
@@ -18,7 +19,10 @@ export default function RootLayout({
     <html lang="fr" suppressHydrationWarning>
       <body className="antialiased">
         <ThemeProvider>
-          <I18nProvider>{children}</I18nProvider>
+          <I18nProvider>
+            {children}
+            <Toaster position="top-right" />
+          </I18nProvider>
         </ThemeProvider>
       </body>
     </html>

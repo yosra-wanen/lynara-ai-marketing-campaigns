@@ -1,24 +1,11 @@
-import { showToast } from "nextjs-toast-notify";
+import toast from 'react-hot-toast';
 
 export class ToastService {
-
   displayToast(message: string, type: 'success' | 'error') {
     if (type === 'success') {
-      showToast.success(message, {
-        duration: 4000,
-        position: "top-right",
-        transition: "bounceIn",
-        icon: '',
-        sound: true,
-      });
+      toast.success(message);
     } else {
-      showToast.error(message, {
-        duration: 4000,
-        position: "top-right",
-        transition: "bounceIn",
-        icon: '',
-        sound: true,
-      });
+      toast.error(message);
     }
   }
 }

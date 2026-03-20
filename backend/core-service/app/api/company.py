@@ -1,10 +1,12 @@
-from enum import Enum
-from typing import Annotated, Any, Optional
-from fastapi import APIRouter, HTTPException, Depends
+from typing import Annotated, Optional
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from pydantic import BaseModel
 from app.shared.auth_dependency import get__authenticated_user
 from app.shared.supabase_service import get_supabase
-from app.shared.api_service import HttpStatus, ApiResponse, ApiError
+from app.models.api_models import ApiResponse, ApiError
+from app.models.http_status_enum import HttpStatus
+from loguru import logger
+
 
 router = APIRouter()
 client = get_supabase()
@@ -44,11 +46,11 @@ class UpdateCompanyRequest(BaseModel):
     country:              Optional[str]   = None
     currency:             Optional[str]   = None
     address:              Optional[AddressData] = None
-@router.get("/me")
+@router.get("/")
 async def get_my_companies(current_user: Annotated[dict, Depends(get__authenticated_user)]):
     try:
         result = client.schema("core").table("company_members") \
-            .select("role, status, companies(*)") \
+            .select("role, status, companies(*, addresses!addresses_company_id_fkey(*))") \
             .eq("user_id", current_user.id) \
             .eq("status", "active") \
             .execute()
@@ -184,5 +186,116 @@ async def update_company(
         return ApiError(
             message="SERVER_ERROR",
             detail=str(e),
+            http_status=HttpStatus.SERVER_ERROR
+        ).to_JSON()
+
+@router.post("/{company_id}/logo")
+async def upload_company_logo(
+    company_id: str,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get__authenticated_user)
+):
+    try:
+        if file.content_type not in ["image/jpeg", "image/png", "image/gif", "image/webp"]:
+            return ApiError(
+                message="INVALID_FILE_TYPE",
+                detail=f"Received content type '{file.content_type}', accepted formats are image/jpeg, image/png, image/gif and image/webp",
+                http_status=HttpStatus.BAD_REQUEST
+            ).to_JSON()
+
+        contents = await file.read()
+
+        if len(contents) > 800 * 1024:
+            return ApiError(
+                message="FILE_TOO_LARGE",
+                detail=f"Received file size is {len(contents)} bytes, maximum allowed size is 819200 bytes (800KB)",
+                http_status=HttpStatus.BAD_REQUEST
+            ).to_JSON()
+
+        ext       = file.filename.split(".")[-1]
+        file_path = f"{company_id}/logo.{ext}"
+
+        try:
+            client.storage.from_("company-logos").upload(
+                path=file_path,
+                file=contents,
+                file_options={"content-type": file.content_type, "upsert": "true"}
+            )
+        except Exception as e:
+            logger.error(f"Error uploading logo to storage: {e}")
+            return ApiError(
+                message="UPLOAD_FAILED",
+                detail=f"Failed to upload logo to storage at path '{file_path}'",
+                http_status=HttpStatus.SERVER_ERROR
+            ).to_JSON()
+
+        logo_url = client.storage.from_("company-logos").get_public_url(file_path)
+
+        client.schema("core").table("companies") \
+            .update({"logo_url": logo_url}) \
+            .eq("company_id", company_id) \
+            .execute()
+
+        logger.info(f"Logo uploaded for company {company_id}")
+        return ApiResponse(
+            message="Logo uploaded successfully",
+            data={"logo_url": logo_url},
+            http_status=HttpStatus.CREATED
+        ).to_JSON()
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading logo: {e}")
+        return ApiError(
+            message="SERVER_ERROR",
+            detail="An unexpected error occurred while uploading the logo",
+            http_status=HttpStatus.SERVER_ERROR
+        ).to_JSON()
+
+@router.delete("/{company_id}")
+async def delete_company(
+    company_id:   str,
+    current_user: Annotated[dict, Depends(get__authenticated_user)]
+):
+    try:
+        member_result = client.schema("core").table("company_members") \
+            .select("role") \
+            .eq("company_id", company_id) \
+            .eq("user_id", current_user.id) \
+            .single() \
+            .execute()
+
+        if not member_result.data:
+            return ApiError(
+                message="COMPANY_NOT_FOUND",
+                detail="No company found with this id for the authenticated user",
+                http_status=HttpStatus.NOT_FOUND
+            ).to_JSON()
+
+        if member_result.data["role"] != "owner":
+            return ApiError(
+                message="UNAUTHORIZED_ROLE",
+                detail="Only owner can delete the company",
+                http_status=HttpStatus.UNAUTHORIZED
+            ).to_JSON()
+
+        client.schema("core").table("company_members").delete().eq("company_id", company_id).execute()
+        client.schema("core").table("addresses").delete().eq("company_id", company_id).execute()
+        client.schema("core").table("companies").delete().eq("company_id", company_id).execute()
+
+        logger.info(f"Company deleted: {company_id} by user {current_user.id}")
+        return ApiResponse(
+            message="Company deleted successfully",
+            http_status=HttpStatus.OK
+        ).to_JSON()
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting company: {e}")
+        return ApiError(
+            message="SERVER_ERROR",
+            detail="An unexpected error occurred while deleting the company",
             http_status=HttpStatus.SERVER_ERROR
         ).to_JSON()

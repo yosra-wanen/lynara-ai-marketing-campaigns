@@ -1,17 +1,7 @@
-from enum import Enum
 from typing import Any, Optional
 from fastapi import HTTPException
 from pydantic import BaseModel
-
-
-class HttpStatus(Enum):
-    OK           = 200
-    CREATED      = 201
-    BAD_REQUEST  = 400
-    UNAUTHORIZED = 401
-    NOT_FOUND    = 404
-    SERVER_ERROR = 500
-
+from app.models.http_status_enum import HttpStatus
 
 class ApiResponse(BaseModel):
     message:     str

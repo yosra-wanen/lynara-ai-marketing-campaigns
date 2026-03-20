@@ -1,10 +1,10 @@
-import os
 from typing import Annotated, Optional
 from fastapi import APIRouter, File, HTTPException, Depends, Request, UploadFile
 from pydantic import BaseModel
 from app.shared.auth_dependency import get__authenticated_user
 from app.shared.supabase_service import get_supabase
-from app.shared.api_service import HttpStatus, ApiResponse, ApiError
+from app.models.api_models import ApiResponse, ApiError
+from app.models.http_status_enum import HttpStatus
 
 router = APIRouter()
 client = get_supabase()

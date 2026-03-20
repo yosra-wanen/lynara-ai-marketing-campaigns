@@ -1,6 +1,7 @@
 from fastapi import Request, HTTPException
 from app.shared.supabase_service import get_supabase
-from app.shared.api_service import HttpStatus, ApiError
+from app.models.api_models import HttpStatus, ApiError
+from loguru import logger
 
 client = get_supabase()
 
@@ -13,20 +14,13 @@ def get__authenticated_user(request: Request):
                 detail="Please login to access this resource",
                 http_status=HttpStatus.UNAUTHORIZED
             ).to_JSON()
-
-        user_response = client.auth.get_user(token)
-        if not user_response or not user_response.user:
-            return ApiError(
-                message="INVALID_TOKEN",
-                detail="The access token is invalid or has expired, please login again",
-                http_status=HttpStatus.UNAUTHORIZED
-            ).to_JSON()
-
-        return user_response.user
-
+        user= client.auth.get_user(token).user
+        logger.info(f"SUCCESSFUL LOGIN: {user.id}")
+        return user
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"LOGIN FAILED DUE TO THE FOLLOWING ERROR: {e}")
         if "jwt" in str(e).lower() or "token" in str(e).lower() :
             return ApiError(
                 message="INVALID_TOKEN",

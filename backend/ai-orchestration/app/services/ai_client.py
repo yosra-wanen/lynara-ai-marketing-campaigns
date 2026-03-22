@@ -10,8 +10,6 @@ AI_API_KEY = os.getenv("AI_API_KEY", "")
 AI_MODEL = os.getenv("AI_MODEL", "mistralai/mistral-7b-instruct")
 AI_BASE_URL = os.getenv("AI_BASE_URL", "https://openrouter.ai/api/v1")
 
-print(f"[DEBUG] API Key loaded: '{AI_API_KEY[:10] if AI_API_KEY else 'EMPTY'}'")
-
 async def call_ai(prompt: str, system: str = "", max_tokens: int = 2000) -> str:
     """Call OpenRouter AI with a prompt."""
     if not AI_API_KEY:
@@ -35,7 +33,6 @@ async def call_ai(prompt: str, system: str = "", max_tokens: int = 2000) -> str:
                 }
             )
             data = response.json()
-            print(f"[OpenRouter response]: {data}")
             return data["choices"][0]["message"]["content"]
     except Exception as e:
         print(f"AI call failed: {e}")

@@ -115,7 +115,7 @@ export default function QuotasPage() {
                             updated[index] = { ...role, [field]: e.target.checked }
                             setRoles(updated)
                           }}
-                          className="w-4 h-4 accent-[#E1306C]" />
+                          className="w-4 h-4 accent-[#7C4DFF]" />
                       </td>
                     ))}
                   </tr>
@@ -125,7 +125,7 @@ export default function QuotasPage() {
           </div>
           <button onClick={() => { setSavingRoles(true); setTimeout(() => { setSavingRoles(false); alert('Règles sauvegardées!') }, 500) }}
             disabled={savingRoles}
-            className="mt-4 px-6 py-2 bg-[#E1306C] text-white rounded-lg hover:bg-[#FD1D1D] disabled:opacity-50 text-sm">
+            className="mt-4 px-6 py-2 bg-[#7C4DFF] text-white rounded-lg hover:bg-[#6D3FEB] disabled:opacity-50 text-sm">
             {savingRoles ? 'Sauvegarde...' : 'Sauvegarder les règles'}
           </button>
         </div>
@@ -138,7 +138,7 @@ export default function QuotasPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Secteurs par défaut</label>
               <input type="text"
-                className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                 placeholder="Ex: Immobilier, Tech, Finance..."
                 value={defaults.default_sectors}
                 onChange={(e) => setDefaults({ ...defaults, default_sectors: e.target.value })} />
@@ -146,7 +146,7 @@ export default function QuotasPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Pays cibles</label>
               <input type="text"
-                className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                 placeholder="Ex: Tunisie, Maroc, France..."
                 value={defaults.default_countries}
                 onChange={(e) => setDefaults({ ...defaults, default_countries: e.target.value })} />
@@ -154,7 +154,7 @@ export default function QuotasPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Types de clients cibles</label>
               <input type="text"
-                className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                 placeholder="Ex: PME, Grands comptes, Startups..."
                 value={defaults.default_client_types}
                 onChange={(e) => setDefaults({ ...defaults, default_client_types: e.target.value })} />
@@ -162,7 +162,7 @@ export default function QuotasPage() {
           </div>
           <button onClick={() => { setSavingDefaults(true); setTimeout(() => { setSavingDefaults(false); alert('Paramètres sauvegardés!') }, 500) }}
             disabled={savingDefaults}
-            className="mt-4 px-6 py-2 bg-[#E1306C] text-white rounded-lg hover:bg-[#FD1D1D] disabled:opacity-50 text-sm">
+            className="mt-4 px-6 py-2 bg-[#7C4DFF] text-white rounded-lg hover:bg-[#6D3FEB] disabled:opacity-50 text-sm">
             {savingDefaults ? 'Sauvegarde...' : 'Sauvegarder les paramètres'}
           </button>
         </div>

@@ -341,7 +341,7 @@ export default function CollectePage() {
           { id: 'templates', label: `📌 Templates${mounted && templates.length > 0 ? ` (${templates.length})` : ''}` },
         ].map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id ? 'border-[#E1306C] text-[#E1306C]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id ? 'border-[#7C4DFF] text-[#7C4DFF]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
             {tab.label}
           </button>
         ))}
@@ -364,11 +364,11 @@ export default function CollectePage() {
                 <div className="bg-gray-50 rounded-lg p-4 border">
                   <p className="text-sm font-medium text-gray-700 mb-2">Nom du template</p>
                   <div className="flex gap-2">
-                    <input type="text" className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                    <input type="text" className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                       placeholder="Ex: Agences immobilières Tunis..."
                       value={templateName} onChange={(e) => setTemplateName(e.target.value)} />
                     <button type="button" onClick={handleSaveTemplate}
-                      className="px-4 py-2 bg-[#E1306C] text-white rounded-lg hover:bg-[#FD1D1D] text-sm">
+                      className="px-4 py-2 bg-[#7C4DFF] text-white rounded-lg hover:bg-[#6D3FEB] text-sm">
                       Sauvegarder
                     </button>
                     <button type="button" onClick={() => setShowSaveTemplate(false)}
@@ -382,7 +382,7 @@ export default function CollectePage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Mots-clés / Brief *</label>
                 <textarea required rows={3}
-                  className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                  className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                   placeholder="Ex: directeurs commerciaux agences immobilières luxe Tunis..."
                   value={config.keywords}
                   onChange={(e) => setConfig({ ...config, keywords: e.target.value })} />
@@ -392,7 +392,7 @@ export default function CollectePage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Localisation</label>
                   <input type="text"
-                    className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                    className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                     placeholder="Ex: Tunis, Casablanca..."
                     value={config.location}
                     onChange={(e) => setConfig({ ...config, location: e.target.value })} />
@@ -400,7 +400,7 @@ export default function CollectePage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Secteur</label>
                   <input type="text"
-                    className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                    className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                     placeholder="Ex: Immobilier, Tech..."
                     value={config.industry}
                     onChange={(e) => setConfig({ ...config, industry: e.target.value })} />
@@ -408,7 +408,7 @@ export default function CollectePage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Persona cible</label>
                   <input type="text"
-                    className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                    className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                     placeholder="Ex: Directeur, CEO, Manager..."
                     value={config.target_persona}
                     onChange={(e) => setConfig({ ...config, target_persona: e.target.value })} />
@@ -416,7 +416,7 @@ export default function CollectePage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Budget cible</label>
                   <input type="text"
-                    className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                    className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                     placeholder="Ex: 50k-200k TND..."
                     value={config.budget_target}
                     onChange={(e) => setConfig({ ...config, budget_target: e.target.value })} />
@@ -431,7 +431,7 @@ export default function CollectePage() {
                       <input type="checkbox"
                         checked={config.sources.includes(source.id)}
                         onChange={() => toggleSource(source.id)}
-                        className="w-4 h-4 accent-[#E1306C]" />
+                        className="w-4 h-4 accent-[#7C4DFF]" />
                       <span className="text-sm text-gray-700">{source.label}</span>
                     </label>
                   ))}
@@ -462,15 +462,15 @@ export default function CollectePage() {
                 <div className="bg-gray-50 rounded-lg p-4 border">
                   <div className="flex justify-between items-center mb-2">
                     <p className="text-sm font-medium text-gray-700">{loadingStep}</p>
-                    <p className="text-sm text-[#E1306C] font-bold">{loadingProgress}%</p>
+                    <p className="text-sm text-[#7C4DFF] font-bold">{loadingProgress}%</p>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-[#E1306C] h-2 rounded-full transition-all duration-500"
+                    <div className="bg-[#7C4DFF] h-2 rounded-full transition-all duration-500"
                       style={{ width: `${loadingProgress}%` }}></div>
                   </div>
                   <div className="flex justify-between mt-2">
                     {['Démarrage', 'Sources', 'Extraction', 'Scoring IA', 'Terminé'].map((step, i) => (
-                      <span key={step} className={`text-xs ${loadingProgress >= (i + 1) * 20 ? 'text-[#E1306C] font-medium' : 'text-gray-400'}`}>
+                      <span key={step} className={`text-xs ${loadingProgress >= (i + 1) * 20 ? 'text-[#7C4DFF] font-medium' : 'text-gray-400'}`}>
                         {step}
                       </span>
                     ))}
@@ -479,7 +479,7 @@ export default function CollectePage() {
               )}
 
               <button type="submit" disabled={loading}
-                className="w-full py-3 bg-[#E1306C] text-white rounded-lg hover:bg-[#FD1D1D] disabled:opacity-50 font-medium">
+                className="w-full py-3 bg-[#7C4DFF] text-white rounded-lg hover:bg-[#6D3FEB] disabled:opacity-50 font-medium">
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
@@ -496,7 +496,7 @@ export default function CollectePage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Volume souhaité</label>
-                  <select className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                  <select className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                     value={config.volume} onChange={(e) => setConfig({ ...config, volume: parseInt(e.target.value) })}>
                     <option value={5}>5 leads</option>
                     <option value={10}>10 leads</option>
@@ -506,7 +506,7 @@ export default function CollectePage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Priorité</label>
-                  <select className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                  <select className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                     value={config.quality_vs_quantity} onChange={(e) => setConfig({ ...config, quality_vs_quantity: e.target.value })}>
                     <option value="quality">Qualité</option>
                     <option value="quantity">Quantité</option>
@@ -515,7 +515,7 @@ export default function CollectePage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Profondeur</label>
-                  <select className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                  <select className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                     value={config.search_depth} onChange={(e) => setConfig({ ...config, search_depth: e.target.value })}>
                     <option value="quick">Rapide</option>
                     <option value="standard">Standard</option>
@@ -532,7 +532,7 @@ export default function CollectePage() {
                   {templates.slice(0, 3).map(t => (
                     <div key={t.id} className="flex justify-between items-center">
                       <button onClick={() => handleLoadTemplate(t)}
-                        className="text-xs text-[#E1306C] hover:underline truncate max-w-[150px]">
+                        className="text-xs text-[#7C4DFF] hover:underline truncate max-w-[150px]">
                         {t.name}
                       </button>
                       <button onClick={() => handleDeleteTemplate(t.id)}
@@ -543,8 +543,8 @@ export default function CollectePage() {
               </div>
             )}
 
-            <div className="bg-[#E1306C]/5 rounded-lg border border-[#E1306C]/20 p-4">
-              <p className="text-sm font-medium text-[#E1306C] mb-2">💡 Conseils</p>
+            <div className="bg-[#7C4DFF]/5 rounded-lg border border-[#7C4DFF]/20 p-4">
+              <p className="text-sm font-medium text-[#7C4DFF] mb-2">💡 Conseils</p>
               <ul className="text-xs text-gray-600 space-y-1">
                 <li>• Soyez précis dans votre brief</li>
                 <li>• Ajoutez la localisation pour de meilleurs résultats</li>
@@ -564,7 +564,7 @@ export default function CollectePage() {
               <p className="text-4xl mb-4">🔍</p>
               <p className="text-gray-400">Lancez une recherche pour voir les résultats</p>
               <button onClick={() => setActiveTab('search')}
-                className="mt-4 px-4 py-2 bg-[#E1306C] text-white rounded-lg hover:bg-[#FD1D1D]">
+                className="mt-4 px-4 py-2 bg-[#7C4DFF] text-white rounded-lg hover:bg-[#6D3FEB]">
                 Configurer une recherche
               </button>
             </div>
@@ -573,13 +573,13 @@ export default function CollectePage() {
               {jobStats && (
                 <div className="bg-white rounded-lg border p-4 mb-4 flex items-center justify-between">
                   <div className="flex gap-6">
-                    <div><p className="text-xs text-gray-500">Leads trouvés</p><p className="text-lg font-bold text-[#E1306C]">{jobStats.total}</p></div>
+                    <div><p className="text-xs text-gray-500">Leads trouvés</p><p className="text-lg font-bold text-[#7C4DFF]">{jobStats.total}</p></div>
                     <div><p className="text-xs text-gray-500">Sources analysées</p><p className="text-lg font-bold text-gray-700">{jobStats.sources_analyzed}</p></div>
                     <div><p className="text-xs text-gray-500">Sélectionnés</p><p className="text-lg font-bold text-[#833AB4]">{selectedLeads.length}</p></div>
                   </div>
                   {selectedLeads.length > 0 && (
                     <button onClick={handleImport} disabled={importing}
-                      className="px-6 py-2 bg-[#E1306C] text-white rounded-lg hover:bg-[#FD1D1D] disabled:opacity-50">
+                      className="px-6 py-2 bg-[#7C4DFF] text-white rounded-lg hover:bg-[#6D3FEB] disabled:opacity-50">
                       {importing ? 'Importation...' : `✅ Importer ${selectedLeads.length} lead(s)`}
                     </button>
                   )}
@@ -591,29 +591,29 @@ export default function CollectePage() {
                   className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200">
                   {selectedLeads.length === getFilteredResults().length ? 'Désélectionner tout' : 'Sélectionner tout'}
                 </button>
-                <select className="p-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                <select className="p-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                   value={filterRating} onChange={(e) => setFilterRating(e.target.value)}>
                   <option value="all">Tous les ratings</option>
                   <option value="hot">🔥 Chaud</option>
                   <option value="warm">⚡ Moyen</option>
                   <option value="cold">❄️ Froid</option>
                 </select>
-                <select className="p-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                <select className="p-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                   value={filterSector} onChange={(e) => setFilterSector(e.target.value)}>
                   <option value="all">Tous les secteurs</option>
                   {getUnique('industry').map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
-                <select className="p-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                <select className="p-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                   value={filterCity} onChange={(e) => setFilterCity(e.target.value)}>
                   <option value="all">Toutes les villes</option>
                   {getUnique('billing_city').map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
-                <select className="p-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                <select className="p-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                   value={filterSource} onChange={(e) => setFilterSource(e.target.value)}>
                   <option value="all">Toutes les sources</option>
                   {getUnique('source').map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
-                <select className="p-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                <select className="p-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                   value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                   <option value="score">Trier par score</option>
                   <option value="name">Trier par nom</option>
@@ -624,13 +624,13 @@ export default function CollectePage() {
               <div className="space-y-3">
                 {getFilteredResults().map((lead, index) => (
                   <div key={lead.temp_id || index}
-                    className={`bg-white rounded-lg border p-4 transition-all ${selectedLeads.find(l => l.temp_id === lead.temp_id) ? 'border-[#E1306C] bg-[#E1306C]/5' : 'border-gray-200'}`}>
+                    className={`bg-white rounded-lg border p-4 transition-all ${selectedLeads.find(l => l.temp_id === lead.temp_id) ? 'border-[#7C4DFF] bg-[#7C4DFF]/5' : 'border-gray-200'}`}>
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3">
                         <input type="checkbox"
                           checked={!!selectedLeads.find(l => l.temp_id === lead.temp_id)}
                           onChange={() => toggleLead(lead)}
-                          className="mt-1 w-4 h-4 accent-[#E1306C]" />
+                          className="mt-1 w-4 h-4 accent-[#7C4DFF]" />
                         <div>
                           <p className="font-medium text-sm text-gray-900">{lead.customer_name}</p>
                           <p className="text-xs text-gray-500">{lead.customer_email || '-'} • {lead.customer_phone || '-'}</p>
@@ -679,14 +679,14 @@ export default function CollectePage() {
       {activeTab === 'history' && (
         <div>
           <div className="flex gap-3 mb-4">
-            <select className="p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+            <select className="p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
               value={historyFilterPeriod} onChange={(e) => setHistoryFilterPeriod(e.target.value)}>
               <option value="all">Toute période</option>
               <option value="today">Aujourd'hui</option>
               <option value="week">Cette semaine</option>
               <option value="month">Ce mois</option>
             </select>
-            <select className="p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+            <select className="p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
               value={historyFilterSector} onChange={(e) => setHistoryFilterSector(e.target.value)}>
               <option value="all">Tous les secteurs</option>
               {[...new Set(history.map(h => h.industry).filter(Boolean))].map(v => (
@@ -721,13 +721,13 @@ export default function CollectePage() {
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">{entry.keywords}</td>
                       <td className="px-4 py-3 text-sm text-gray-500">{entry.location || '-'}</td>
                       <td className="px-4 py-3 text-sm text-gray-500">{entry.industry || '-'}</td>
-                      <td className="px-4 py-3 text-sm text-[#E1306C] font-medium">{entry.total_found}</td>
+                      <td className="px-4 py-3 text-sm text-[#7C4DFF] font-medium">{entry.total_found}</td>
                       <td className="px-4 py-3 text-sm text-emerald-600 font-medium">{entry.imported}</td>
                       <td className="px-4 py-3 text-sm text-gray-500">{entry.date}</td>
                       <td className="px-4 py-3 text-sm text-gray-500">{entry.author || 'Moi'}</td>
                       <td className="px-4 py-3">
                         <button onClick={() => rerunSearch(entry)}
-                          className="px-3 py-1 bg-[#E1306C]/10 text-[#E1306C] text-xs rounded-lg hover:bg-[#E1306C]/20">
+                          className="px-3 py-1 bg-[#7C4DFF]/10 text-[#7C4DFF] text-xs rounded-lg hover:bg-[#7C4DFF]/20">
                           🔄 Relancer
                         </button>
                       </td>
@@ -749,7 +749,7 @@ export default function CollectePage() {
               <p className="text-lg font-semibold text-gray-700">Aucun template sauvegardé</p>
               <p className="text-gray-400 mt-2">Sauvegardez vos recherches fréquentes pour les réutiliser</p>
               <button onClick={() => setActiveTab('search')}
-                className="mt-4 px-4 py-2 bg-[#E1306C] text-white rounded-lg hover:bg-[#FD1D1D]">
+                className="mt-4 px-4 py-2 bg-[#7C4DFF] text-white rounded-lg hover:bg-[#6D3FEB]">
                 Créer une recherche
               </button>
             </div>
@@ -758,7 +758,7 @@ export default function CollectePage() {
               {templates.map(template => (
                 <div key={template.id} className="bg-white rounded-lg border p-5 hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start mb-3">
-                    <div className="w-10 h-10 rounded-lg bg-[#E1306C]/10 flex items-center justify-center text-[#E1306C] font-bold text-lg">
+                    <div className="w-10 h-10 rounded-lg bg-[#7C4DFF]/10 flex items-center justify-center text-[#7C4DFF] font-bold text-lg">
                       📌
                     </div>
                     <button onClick={() => handleDeleteTemplate(template.id)}
@@ -774,7 +774,7 @@ export default function CollectePage() {
                   <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
                     <span className="text-xs text-gray-400">{new Date(template.created_at).toLocaleDateString('fr-FR')}</span>
                     <button onClick={() => handleLoadTemplate(template)}
-                      className="px-3 py-1 bg-[#E1306C] text-white text-xs rounded-lg hover:bg-[#FD1D1D]">
+                      className="px-3 py-1 bg-[#7C4DFF] text-white text-xs rounded-lg hover:bg-[#6D3FEB]">
                       Utiliser
                     </button>
                   </div>
@@ -826,7 +826,7 @@ export default function CollectePage() {
                 <p className="text-sm font-medium text-gray-700 mb-2">📊 Scores IA</p>
                 <div className="space-y-2">
                   {[
-                    { label: 'Score global', value: detailLead.score, color: 'bg-[#E1306C]' },
+                    { label: 'Score global', value: detailLead.score, color: 'bg-[#7C4DFF]' },
                     { label: 'Pertinence', value: detailLead.relevance_score || detailLead.score, color: 'bg-blue-400' },
                     { label: 'Maturité', value: detailLead.maturity_score || Math.round(detailLead.score * 0.9), color: 'bg-yellow-400' },
                     { label: 'Potentiel commercial', value: detailLead.potential_score || Math.round(detailLead.score * 0.85), color: 'bg-green-400' },
@@ -853,7 +853,7 @@ export default function CollectePage() {
             </div>
             <div className="flex gap-3 mt-4">
               <button onClick={() => { toggleLead(detailLead); setDetailLead(null) }}
-                className="flex-1 py-2 bg-[#E1306C] text-white rounded-lg hover:bg-[#FD1D1D] text-sm">
+                className="flex-1 py-2 bg-[#7C4DFF] text-white rounded-lg hover:bg-[#6D3FEB] text-sm">
                 {selectedLeads.find(l => l.temp_id === detailLead.temp_id) ? '✓ Désélectionner' : '+ Sélectionner'}
               </button>
               <button onClick={() => setDetailLead(null)}
@@ -884,7 +884,7 @@ export default function CollectePage() {
                 <div key={item.field}>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{item.label}</label>
                   <input type="text"
-                    className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                    className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                     value={editingLead[item.field] || ''}
                     onChange={(e) => setEditingLead({ ...editingLead, [item.field]: e.target.value })} />
                 </div>
@@ -892,7 +892,7 @@ export default function CollectePage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
                 <textarea rows={3}
-                  className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                  className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                   value={editingLead.crm_notes || ''}
                   onChange={(e) => setEditingLead({ ...editingLead, crm_notes: e.target.value })}
                   placeholder="Notes sur ce lead..." />
@@ -900,7 +900,7 @@ export default function CollectePage() {
             </div>
             <div className="flex gap-3 mt-4">
               <button onClick={handleEditSave}
-                className="px-6 py-2 bg-[#E1306C] text-white rounded-lg hover:bg-[#FD1D1D]">
+                className="px-6 py-2 bg-[#7C4DFF] text-white rounded-lg hover:bg-[#6D3FEB]">
                 Sauvegarder
               </button>
               <button onClick={() => setEditingLead(null)}
@@ -918,7 +918,7 @@ export default function CollectePage() {
           <div className="bg-white rounded-lg p-6 w-[400px]">
             <h2 className="text-lg font-semibold mb-2">✕ Rejeter le lead</h2>
             <p className="text-sm text-gray-500 mb-4">Pourquoi rejetez-vous <span className="font-medium">{rejectingLead.customer_name}</span>?</p>
-            <select className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C] mb-4"
+            <select className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF] mb-4"
               value={rejectReason} onChange={(e) => setRejectReason(e.target.value)}>
               <option value="">Sélectionnez une raison...</option>
               <option value="hors_cible">Hors cible</option>

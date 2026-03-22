@@ -358,7 +358,7 @@ export default function SegmentsPage() {
             📥 Exporter CSV
           </button>
           <button onClick={() => { setShowBuilder(true); setActiveTab('builder'); setEditingSegment(null); setBuilderName(''); setBuilderDescription(''); setBuilderRules([{ id: '1', field: 'score', operator: '>', value: '70', connector: 'AND' }]); setPreviewLeads([]) }}
-            className="px-4 py-2 bg-[#E1306C] text-white rounded-lg hover:bg-[#FD1D1D] text-sm">
+            className="px-4 py-2 bg-[#7C4DFF] text-white rounded-lg hover:bg-[#6D3FEB] text-sm">
             ➕ Nouveau segment dynamique
           </button>
         </div>
@@ -371,7 +371,7 @@ export default function SegmentsPage() {
           { id: 'builder', label: '🔧 Règle Builder' },
         ].map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id ? 'border-[#E1306C] text-[#E1306C]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id ? 'border-[#7C4DFF] text-[#7C4DFF]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
             {tab.label}
           </button>
         ))}
@@ -381,7 +381,7 @@ export default function SegmentsPage() {
         <div>
           {loading ? (
             <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#E1306C] mx-auto"></div>
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#7C4DFF] mx-auto"></div>
               <p className="mt-3 text-gray-500">Chargement...</p>
             </div>
           ) : allSegments.length === 0 ? (
@@ -390,7 +390,7 @@ export default function SegmentsPage() {
               <p className="text-lg font-semibold text-gray-700">Aucun segment créé</p>
               <p className="text-gray-400 mt-2">Créez votre premier segment dynamique</p>
               <button onClick={() => setActiveTab('builder')}
-                className="mt-4 px-4 py-2 bg-[#E1306C] text-white rounded-lg hover:bg-[#FD1D1D]">
+                className="mt-4 px-4 py-2 bg-[#7C4DFF] text-white rounded-lg hover:bg-[#6D3FEB]">
                 ➕ Créer un segment
               </button>
             </div>
@@ -400,7 +400,7 @@ export default function SegmentsPage() {
                 {paginatedSegments.map((segment: any, index: number) => (
                   <div key={segment.id || index} className="bg-white rounded-lg border p-5 hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start mb-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold ${segment.type === 'dynamic' ? 'bg-[#833AB4]' : 'bg-[#E1306C]'}`}>
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold ${segment.type === 'dynamic' ? 'bg-[#833AB4]' : 'bg-[#7C4DFF]'}`}>
                         {segment.type === 'dynamic' ? '🔧' : '📂'}
                       </div>
                       <span className={`text-xs px-2 py-1 rounded-full ${segment.type === 'dynamic' ? 'bg-purple-100 text-purple-700' : 'bg-pink-100 text-pink-700'}`}>
@@ -424,7 +424,7 @@ export default function SegmentsPage() {
                       </div>
                     )}
                     <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
-                      <span className="text-xs text-[#E1306C] font-medium">
+                      <span className="text-xs text-[#7C4DFF] font-medium">
                         👥 {segment.lead_count || segment.matched_count || 0} leads
                       </span>
                       <div className="flex gap-1">
@@ -455,7 +455,7 @@ export default function SegmentsPage() {
                   </button>
                   {Array.from({ length: totalPages }, (_, i) => (
                     <button key={i + 1} onClick={() => setCurrentPage(i + 1)}
-                      className={`px-3 py-1 rounded-lg ${currentPage === i + 1 ? 'bg-[#E1306C] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+                      className={`px-3 py-1 rounded-lg ${currentPage === i + 1 ? 'bg-[#7C4DFF] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
                       {i + 1}
                     </button>
                   ))}
@@ -474,7 +474,7 @@ export default function SegmentsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-4 gap-4">
             {[
-              { label: 'Total Leads', value: stats.total_leads, icon: '👥', color: 'text-[#E1306C]' },
+              { label: 'Total Leads', value: stats.total_leads, icon: '👥', color: 'text-[#7C4DFF]' },
               { label: 'Score Moyen', value: stats.avg_score, icon: '⭐', color: 'text-yellow-500' },
               { label: 'Convertis', value: stats.converted, icon: '✅', color: 'text-green-500' },
               { label: 'Total Segments', value: allSegments.length, icon: '📂', color: 'text-[#833AB4]' },
@@ -518,7 +518,7 @@ export default function SegmentsPage() {
                     <span className="font-medium">{item.count}</span>
                   </div>
                   <div className="w-full bg-gray-100 rounded-full h-2">
-                    <div className="bg-[#E1306C] h-2 rounded-full"
+                    <div className="bg-[#7C4DFF] h-2 rounded-full"
                       style={{ width: `${leads.length ? Math.round(item.count / leads.length * 100) : 0}%` }}></div>
                   </div>
                 </div>
@@ -550,7 +550,7 @@ export default function SegmentsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">{segment.description || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-[#E1306C] font-medium">
+                    <td className="px-4 py-3 text-sm text-[#7C4DFF] font-medium">
                       {segment.lead_count || segment.matched_count || 0}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">
@@ -574,7 +574,7 @@ export default function SegmentsPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nom du segment *</label>
                   <input type="text"
-                    className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                    className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                     placeholder="Ex: Leads chauds immobilier Tunis..."
                     value={builderName}
                     onChange={(e) => setBuilderName(e.target.value)} />
@@ -582,7 +582,7 @@ export default function SegmentsPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                   <input type="text"
-                    className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                    className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                     placeholder="Ex: Leads avec score élevé dans l'immobilier..."
                     value={builderDescription}
                     onChange={(e) => setBuilderDescription(e.target.value)} />
@@ -597,7 +597,7 @@ export default function SegmentsPage() {
                       <select
                         value={rule.connector}
                         onChange={(e) => updateRule(rule.id, 'connector', e.target.value)}
-                        className="p-1.5 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#E1306C] w-16">
+                        className="p-1.5 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#7C4DFF] w-16">
                         <option value="AND">ET</option>
                         <option value="OR">OU</option>
                       </select>
@@ -607,7 +607,7 @@ export default function SegmentsPage() {
                     <select
                       value={rule.field}
                       onChange={(e) => updateRule(rule.id, 'field', e.target.value)}
-                      className="p-1.5 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#E1306C] flex-1">
+                      className="p-1.5 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#7C4DFF] flex-1">
                       {RULE_FIELDS.map(f => (
                         <option key={f.value} value={f.value}>{f.label}</option>
                       ))}
@@ -616,7 +616,7 @@ export default function SegmentsPage() {
                     <select
                       value={rule.operator}
                       onChange={(e) => updateRule(rule.id, 'operator', e.target.value)}
-                      className="p-1.5 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#E1306C] w-20">
+                      className="p-1.5 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#7C4DFF] w-20">
                       {getOperators(rule.field).map(op => (
                         <option key={op} value={op}>{op}</option>
                       ))}
@@ -626,7 +626,7 @@ export default function SegmentsPage() {
                       <select
                         value={rule.value}
                         onChange={(e) => updateRule(rule.id, 'value', e.target.value)}
-                        className="p-1.5 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#E1306C] flex-1">
+                        className="p-1.5 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#7C4DFF] flex-1">
                         {getFieldDef(rule.field)?.options?.map(opt => (
                           <option key={opt} value={opt}>{opt}</option>
                         ))}
@@ -636,7 +636,7 @@ export default function SegmentsPage() {
                         type={getFieldDef(rule.field)?.type === 'number' ? 'number' : 'text'}
                         value={rule.value}
                         onChange={(e) => updateRule(rule.id, 'value', e.target.value)}
-                        className="p-1.5 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#E1306C] flex-1"
+                        className="p-1.5 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#7C4DFF] flex-1"
                         placeholder="Valeur..." />
                     )}
 
@@ -650,7 +650,7 @@ export default function SegmentsPage() {
                 ))}
 
                 <button onClick={addRule}
-                  className="w-full py-2 border-2 border-dashed border-gray-300 text-gray-500 rounded-lg hover:border-[#E1306C] hover:text-[#E1306C] text-sm">
+                  className="w-full py-2 border-2 border-dashed border-gray-300 text-gray-500 rounded-lg hover:border-[#7C4DFF] hover:text-[#7C4DFF] text-sm">
                   ➕ Ajouter une règle
                 </button>
               </div>
@@ -661,7 +661,7 @@ export default function SegmentsPage() {
                   {previewing ? 'Prévisualisation...' : '👁️ Prévisualiser'}
                 </button>
                 <button onClick={handleSaveSegment}
-                  className="px-6 py-2 bg-[#E1306C] text-white rounded-lg hover:bg-[#FD1D1D] text-sm">
+                  className="px-6 py-2 bg-[#7C4DFF] text-white rounded-lg hover:bg-[#6D3FEB] text-sm">
                   {editingSegment ? '💾 Modifier le segment' : '💾 Sauvegarder le segment'}
                 </button>
                 {editingSegment && (
@@ -684,7 +684,7 @@ export default function SegmentsPage() {
                         <p className="text-xs text-gray-500">{lead.company_name} • {lead.industry}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs font-bold text-[#E1306C]">Score: {lead.score}</p>
+                        <p className="text-xs font-bold text-[#7C4DFF]">Score: {lead.score}</p>
                         <p className="text-xs text-gray-400">{lead.billing_city}</p>
                       </div>
                     </div>

@@ -1,7 +1,7 @@
 'use client';
 import { FormEvent, useState, useEffect } from 'react';
 import { Card, Button, Input } from '@/components';
-import { InputValidationService } from '../service/input-validation.service';
+import { InputValidationService } from '../../services/input-validation.service';
 import { ToastService } from '@/app/services/toast.service';
 import { useRouter } from 'next/dist/client/components/navigation';
 import { UrlParserService } from '../service/url-parser.service';

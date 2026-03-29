@@ -139,3 +139,11 @@ body::before {
 .diagram-dot {
   animation: diagram-dot-pulse 2s ease-in-out infinite;
 }
+.edit-allowed {
+  @apply text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#262626] cursor-pointer;
+}
+.edit-disallowed {
+  @apply text-gray-300 dark:text-gray-600 cursor-not-allowed;
+}
+.delete-allowed  { @apply text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer; }
+.delete-disallowed { @apply text-gray-300 dark:text-gray-600 cursor-not-allowed; }

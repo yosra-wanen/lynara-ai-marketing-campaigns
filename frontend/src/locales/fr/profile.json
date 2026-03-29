@@ -10,7 +10,7 @@
     "language": "Langue",
     "notifications": "Préférences de notification",
     "uploadAvatar": "Changer l'avatar",
-    "saveChanges": "Enregistrer les modifications",
+    "saveChanges": "Valider",
     "cancel": "Annuler",
     "connect": "Connecter",
     "disconnect": "Déconnecter",
@@ -63,7 +63,15 @@
     "uploading": "Envoi en cours...",
     "deleteCompany": "Supprimer l'entreprise",
     "deleteConfirm": "Êtes-vous sûr de vouloir supprimer",
-    "deleteWarning": "Cette action est irréversible. Toutes vos données seront perdues.",
     "deleteSuccess": "Entreprise supprimée avec succès",
-    "deleting": "Suppression..."
+    "deleting": "Suppression...",
+    "deleteAccountDesc": "Suppression définitive du compte",
+    "deleteAccountWarning": "Cette action est irréversible. Toutes vos données seront perdues.",
+    "deleteAccountBtn": "Supprimer le compte",
+    "connectedAs": "Connecté en tant que",
+    "notConnected": "Non connecté",
+    "tabSecurity": "Mot de passe",
+    "tabConnected": "Comptes connectés",
+    "tabDeleteAccount": "Supprimer le compte",
+    "member": "Membre"
 }

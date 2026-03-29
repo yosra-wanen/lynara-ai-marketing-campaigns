@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, Button, Input } from '@/components';
 import { ToastService } from '@/app/services/toast.service';
-import { InputValidationService } from '../service/input-validation.service';
+import { InputValidationService } from '../../services/input-validation.service';
 import { TranslationService } from '@/app/services/translation.service';
 
 export default function RegisterPage() {

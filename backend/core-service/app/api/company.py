@@ -1,51 +1,17 @@
-from typing import Annotated, Optional
+from typing import Annotated
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
-from pydantic import BaseModel
 from app.shared.auth_dependency import get__authenticated_user
 from app.shared.supabase_service import get_supabase
 from app.models.api_models import ApiResponse, ApiError
 from app.models.http_status_enum import HttpStatus
+from app.models.company_request_model import CreateCompanyRequest, UpdateCompanyRequest
 from loguru import logger
-
+from app.shared.file_service import validate_image_file
 
 router = APIRouter()
 client = get_supabase()
 
-class AddressData(BaseModel):
-    line1:       str
-    city:        str
-    country:     str
-    line2:       Optional[str] = None
-    state:       Optional[str] = None
-    postal_code: Optional[str] = None
 
-
-class CreateCompanyRequest(BaseModel):
-    legal_name:           str
-    capital_social:       float
-    director_name:        str
-    start_date:           str
-    industry:             str
-    activity_description: Optional[str] = None
-    email:                str
-    phone:                str
-    country:              str
-    address:              AddressData
-    currency:             Optional[str] = "TND"
-
-
-class UpdateCompanyRequest(BaseModel):
-    legal_name:           Optional[str]   = None
-    capital_social:       Optional[float] = None
-    director_name:        Optional[str]   = None
-    start_date:           Optional[str]   = None
-    industry:             Optional[str]   = None
-    activity_description: Optional[str]   = None
-    email:                Optional[str]   = None
-    phone:                Optional[str]   = None
-    country:              Optional[str]   = None
-    currency:             Optional[str]   = None
-    address:              Optional[AddressData] = None
 @router.get("/")
 async def get_my_companies(current_user: Annotated[dict, Depends(get__authenticated_user)]):
     try:
@@ -58,8 +24,8 @@ async def get_my_companies(current_user: Annotated[dict, Depends(get__authentica
         companies = []
         for member in result.data:
             if member.get("companies"):
-                company = member["companies"]
-                company["role"] = member["role"]
+                company          = member["companies"]
+                company["role"]   = member["role"]
                 company["status"] = member["status"]
                 companies.append(company)
 
@@ -129,7 +95,8 @@ async def create_company(
             detail=str(e),
             http_status=HttpStatus.SERVER_ERROR
         ).to_JSON()
-        
+
+
 @router.put("/{company_id}")
 async def update_company(
     company_id:   str,
@@ -175,6 +142,7 @@ async def update_company(
                 "p_country":     request_data.address.country,
             }).execute()
 
+        logger.info(f"Company updated: {company_id} by user {current_user.id}")
         return ApiResponse(
             message="Company updated successfully",
             http_status=HttpStatus.OK
@@ -183,34 +151,26 @@ async def update_company(
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error updating company {company_id}: {e}")
         return ApiError(
             message="SERVER_ERROR",
             detail=str(e),
             http_status=HttpStatus.SERVER_ERROR
         ).to_JSON()
 
+
 @router.post("/{company_id}/logo")
 async def upload_company_logo(
-    company_id: str,
-    file: UploadFile = File(...),
-    current_user: dict = Depends(get__authenticated_user)
+    company_id:   str,
+    file:         UploadFile = File(...),
+    current_user: dict       = Depends(get__authenticated_user)
 ):
     try:
-        if file.content_type not in ["image/jpeg", "image/png", "image/gif", "image/webp"]:
-            return ApiError(
-                message="INVALID_FILE_TYPE",
-                detail=f"Received content type '{file.content_type}', accepted formats are image/jpeg, image/png, image/gif and image/webp",
-                http_status=HttpStatus.BAD_REQUEST
-            ).to_JSON()
-
         contents = await file.read()
 
-        if len(contents) > 800 * 1024:
-            return ApiError(
-                message="FILE_TOO_LARGE",
-                detail=f"Received file size is {len(contents)} bytes, maximum allowed size is 819200 bytes (800KB)",
-                http_status=HttpStatus.BAD_REQUEST
-            ).to_JSON()
+        error = validate_image_file(file, contents)
+        if error:
+            return error.to_JSON()
 
         ext       = file.filename.split(".")[-1]
         file_path = f"{company_id}/logo.{ext}"
@@ -252,6 +212,7 @@ async def upload_company_logo(
             detail="An unexpected error occurred while uploading the logo",
             http_status=HttpStatus.SERVER_ERROR
         ).to_JSON()
+
 
 @router.delete("/{company_id}")
 async def delete_company(

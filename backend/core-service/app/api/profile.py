@@ -1,19 +1,14 @@
-from typing import Annotated, Optional
+from typing import Annotated
 from fastapi import APIRouter, File, HTTPException, Depends, Request, UploadFile
-from pydantic import BaseModel
 from app.shared.auth_dependency import get__authenticated_user
 from app.shared.supabase_service import get_supabase
 from app.models.api_models import ApiResponse, ApiError
 from app.models.http_status_enum import HttpStatus
+from app.models.company_request_model import UpdateProfileRequest
+from app.shared.file_service import validate_image_file
 
 router = APIRouter()
 client = get_supabase()
-
-
-class UpdateProfileRequest(BaseModel):
-    full_name: Optional[str] = None
-    phone:     Optional[str] = None
-    email:     Optional[str] = None
 
 
 @router.get("/me")
@@ -49,7 +44,11 @@ async def get_current_user(current_user: Annotated[dict, Depends(get__authentica
 
 
 @router.put("/me")
-async def update_current_user(request: Request, request_data: UpdateProfileRequest, current_user: Annotated[dict, Depends(get__authenticated_user)]):
+async def update_current_user(
+    request:      Request,
+    request_data: UpdateProfileRequest,
+    current_user: Annotated[dict, Depends(get__authenticated_user)]
+):
     try:
         result = client.rpc("update_user_profile", {
             "p_user_id":   current_user.id,
@@ -93,23 +92,16 @@ async def update_current_user(request: Request, request_data: UpdateProfileReque
 
 
 @router.post("/me/avatar")
-async def upload_avatar(file: UploadFile = File(...), current_user: dict = Depends(get__authenticated_user)):
+async def upload_avatar(
+    file:         UploadFile = File(...),
+    current_user: dict       = Depends(get__authenticated_user)
+):
     try:
-        if file.content_type not in ["image/jpeg", "image/png", "image/gif", "image/webp"]:
-            return ApiError(
-                message="INVALID_FILE_TYPE",
-                detail=f"Received content type '{file.content_type}', accepted formats are image/jpeg, image/png, image/gif and image/webp",
-                http_status=HttpStatus.BAD_REQUEST
-            ).to_JSON()
-
         contents = await file.read()
 
-        if len(contents) > 800 * 1024:
-            return ApiError(
-                message="FILE_TOO_LARGE",
-                detail=f"Received file size is {len(contents)} bytes, maximum allowed size is 819200 bytes (800KB)",
-                http_status=HttpStatus.BAD_REQUEST
-            ).to_JSON()
+        error = validate_image_file(file, contents)
+        if error:
+            return error.to_JSON()
 
         user_id   = current_user.id
         ext       = file.filename.split(".")[-1]

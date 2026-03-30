@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 
 type Item = {
   id: string;
@@ -18,6 +19,7 @@ export default function AddItemToSupplierPage() {
   const params = useParams();
   const supplierId = params.id as string;
   const router = useRouter();
+  const { companyId } = useAuth();
 
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [items, setItems] = useState<Item[]>([]);
@@ -36,13 +38,13 @@ export default function AddItemToSupplierPage() {
     setError("");
     try {
       // Fetch the supplier to get its name
-      const supRes = await fetch(`http://localhost:8001/catalog/suppliers/${supplierId}`);
+      const supRes = await fetch(`http://localhost:8002/catalog/suppliers/${supplierId}`);
       if (!supRes.ok) throw new Error("Fournisseur introuvable");
       const supData = await supRes.json();
       setSupplier(supData);
 
       // Fetch all available items
-      const itemsRes = await fetch("http://localhost:8001/catalog/items-with-images");
+      const itemsRes = await fetch(`http://localhost:8002/catalog/items-with-images?company_id=${companyId}`);
       if (!itemsRes.ok) throw new Error("Erreur lors de la récupération des produits");
       const itemsData = await itemsRes.json();
       setItems(itemsData);
@@ -65,7 +67,7 @@ export default function AddItemToSupplierPage() {
     setError("");
 
     try {
-      const res = await fetch(`http://localhost:8001/catalog/suppliers/${supplierId}/add-item`, {
+      const res = await fetch(`http://localhost:8002/catalog/suppliers/${supplierId}/add-item`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

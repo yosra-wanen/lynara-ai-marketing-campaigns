@@ -5,8 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft, MapPin, Tag, Calendar, Share2,
   ChevronLeft, ChevronRight, X, Plus, Pencil,
-  Trash2, Check, ZoomIn, Users,
+  Trash2, Check, ZoomIn, Users, Building2, Percent, ExternalLink,
+  Star, Copy, Activity
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 // ─────────────────────────────────────────────
 // TYPES
@@ -18,7 +20,8 @@ interface CatalogItem {
   price: number;
   currency: string;
   category?: string;
-  state?: string;
+  // status is the canonical field: draft | published | archived
+  status?: string;
   created_at?: string;
   company_id?: string;
 }
@@ -33,10 +36,9 @@ interface Conditions {
   politique_annulation: string | null;
 }
 
-type Tab = "infos" | "variantes" | "options" | "cible" | "conditions";
+type Tab = "infos" | "variantes" | "options" | "cible" | "conditions" | "fournisseurs";
 
-const API        = "http://localhost:8001";
-const COMPANY_ID = "7abcc5d8-f6c9-4602-bfce-a7dba8fa2981";
+const API = "http://localhost:8002";
 
 const PROFILE_ICONS: Record<string, string> = {
   "Famille":             "👨‍👩‍👧",
@@ -85,6 +87,7 @@ export default function CatalogDetailPage() {
   const params  = useParams();
   const id      = params.id as string;
   const router  = useRouter();
+  const { companyId, userId } = useAuth();
 
   const [item,        setItem]        = useState<CatalogItem | null>(null);
   const [images,      setImages]      = useState<string[]>([]);
@@ -93,6 +96,11 @@ export default function CatalogDetailPage() {
   const [lightbox,    setLightbox]    = useState(false);
   const [activeTab,   setActiveTab]   = useState<Tab>("infos");
   const [copied,      setCopied]      = useState(false);
+
+  // Advanced features state
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [completeness, setCompleteness] = useState<{score: number; missing: string[]}>({score: 0, missing: []});
+  const [cloning, setCloning] = useState(false);
 
   // variants
   const [variants,     setVariants]     = useState<Variant[]>([]);
@@ -140,6 +148,34 @@ const [posForm,    setPosForm]    = useState({
 const [posSaving,  setPosSaving]  = useState(false);
 const [newKeyword, setNewKeyword] = useState("");
 
+  // attributs dynamiques
+  interface AttributeDef {
+    id: string;
+    attribute_name: string;
+    display_label: string;
+    data_type: string;
+    category_id: string | null;
+  }
+  const [attrDefs, setAttrDefs] = useState<AttributeDef[]>([]);
+  const [attrValues, setAttrValues] = useState<Record<string, any>>({});
+  const [attrLoading, setAttrLoading] = useState(false);
+
+  // fournisseurs
+  interface ItemSupplierLink {
+    id: string;
+    supplier_id: string;
+    commission: number | null;
+    suppliers?: { id: string; name: string; description?: string };
+  }
+  const [itemSuppliers,     setItemSuppliers]     = useState<ItemSupplierLink[]>([]);
+  const [suppLoading,       setSuppLoading]       = useState(false);
+  const [allSuppliers,      setAllSuppliers]      = useState<{id:string;name:string}[]>([]);
+  const [showAddSupplier,   setShowAddSupplier]   = useState(false);
+  const [selSuppId,         setSelSuppId]         = useState("");
+  const [newSuppComm,       setNewSuppComm]       = useState("");
+  const [editingSuppComm,   setEditingSuppComm]   = useState<string|null>(null);
+  const [editSuppCommVal,   setEditSuppCommVal]   = useState("");
+
   // keyboard nav for lightbox
   const handleKey = useCallback((e: KeyboardEvent) => {
     if (!lightbox) return;
@@ -156,17 +192,59 @@ const [newKeyword, setNewKeyword] = useState("");
   useEffect(() => { if (id) loadData(); }, [id]);
 
   useEffect(() => {
-    if (activeTab === "variantes"  && variants.length === 0)    fetchVariants();
-    if (activeTab === "options"    && options.length === 0)     fetchOptions();
-    if (activeTab === "cible"      && allProfiles.length === 0) fetchCible();
-    if (activeTab === "conditions" && !conditions)              fetchConditions();
+    if (activeTab === "variantes"     && variants.length === 0)    fetchVariants();
+    if (activeTab === "options"       && options.length === 0)     fetchOptions();
+    if (activeTab === "cible"         && allProfiles.length === 0) fetchCible();
+    if (activeTab === "conditions"    && !conditions)              fetchConditions();
     if (activeTab === "infos" && !posForm.positioning && !posForm.city) fetchPositionnement();
+    if (activeTab === "fournisseurs"  && itemSuppliers.length === 0) fetchItemSuppliers();
   }, [activeTab]);
 
   async function loadData() {
     setLoading(true);
-    await Promise.all([fetchItem(), fetchImages()]);
+    await Promise.all([fetchItem(), fetchImages(), fetchAttributes(), fetchAdvanced()]);
     setLoading(false);
+  }
+
+  async function fetchAdvanced() {
+    if (!userId) return;
+    try {
+      // is favorite?
+      const favsRes = await fetch(`${API}/catalog/favorites/ids?user_id=${userId}`);
+      const favs = await favsRes.json();
+      if (Array.isArray(favs) && favs.includes(id)) setIsFavorite(true);
+      
+      // completeness
+      const compRes = await fetch(`${API}/catalog/items/${id}/completeness`);
+      const comp = await compRes.json();
+      setCompleteness(comp);
+    } catch { /* silent */ }
+  }
+
+  async function fetchAttributes() {
+    if (!companyId) return;
+    setAttrLoading(true);
+    try {
+      const [defsRes, valsRes] = await Promise.all([
+        fetch(`${API}/catalog/attributes?company_id=${companyId}`),
+        fetch(`${API}/catalog/items/${id}/attributes`)
+      ]);
+      const defs = await defsRes.json();
+      const vals = await valsRes.json();
+      
+      setAttrDefs(Array.isArray(defs) ? defs : []);
+      
+      const vMap: Record<string, any> = {};
+      if (Array.isArray(vals)) {
+        vals.forEach(v => {
+          if (v.string_value !== null) vMap[v.attribute_id] = v.string_value;
+          else if (v.number_value !== null) vMap[v.attribute_id] = v.number_value;
+          else if (v.boolean_value !== null) vMap[v.attribute_id] = v.boolean_value;
+        });
+      }
+      setAttrValues(vMap);
+    } catch { /* silent */ }
+    setAttrLoading(false);
   }
 
   async function fetchItem() {
@@ -247,7 +325,7 @@ const [newKeyword, setNewKeyword] = useState("");
     setCibleLoading(true);
     try {
       const [all, linked] = await Promise.all([
-        fetch(`${API}/catalog/target-profiles?company_id=${COMPANY_ID}`).then(r => r.json()),
+        fetch(`${API}/catalog/target-profiles?company_id=${companyId}`).then(r => r.json()),
         fetch(`${API}/catalog/items/${id}/target-profiles`).then(r => r.json()),
       ]);
       setAllProfiles(all);
@@ -321,9 +399,65 @@ const [newKeyword, setNewKeyword] = useState("");
     } catch { /* silent */ }
   }
   
+  // ── FOURNISSEURS ──
+  async function fetchItemSuppliers() {
+    setSuppLoading(true);
+    try {
+      const data = await (await fetch(`${API}/catalog/items/${id}/suppliers`)).json();
+      setItemSuppliers(Array.isArray(data) ? data : []);
+    } catch { /* silent */ }
+    setSuppLoading(false);
+  }
+
+  async function loadAllSuppliers() {
+    if (!companyId || allSuppliers.length > 0) return;
+    try {
+      const data = await (await fetch(`${API}/catalog/suppliers?company_id=${companyId}`)).json();
+      setAllSuppliers(Array.isArray(data) ? data : []);
+    } catch { setAllSuppliers([]); }
+  }
+
+  async function addSupplierToItem() {
+    if (!selSuppId) return;
+    try {
+      const res = await fetch(`${API}/catalog/items/${id}/suppliers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          supplier_id: selSuppId,
+          commission: newSuppComm ? parseFloat(newSuppComm) : null,
+        }),
+      });
+      if (res.status === 409) { alert("Ce fournisseur est déjà lié à cette offre."); return; }
+      await fetchItemSuppliers();
+      setSelSuppId(""); setNewSuppComm(""); setShowAddSupplier(false);
+    } catch { alert("Erreur lors de l'ajout"); }
+  }
+
+  async function removeSupplierFromItem(supplierId: string) {
+    if (!confirm("Retirer ce fournisseur de l'offre ?")) return;
+    await fetch(`${API}/catalog/items/${id}/suppliers/${supplierId}`, { method: "DELETE" });
+    setItemSuppliers((p) => p.filter((s) => s.supplier_id !== supplierId));
+  }
+
+  async function saveSuppComm(supplierId: string) {
+    try {
+      await fetch(`${API}/catalog/suppliers/${supplierId}/items/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commission: editSuppCommVal ? parseFloat(editSuppCommVal) : null }),
+      });
+      setItemSuppliers((p) => p.map((s) =>
+        s.supplier_id === supplierId ? { ...s, commission: editSuppCommVal ? parseFloat(editSuppCommVal) : null } : s
+      ));
+      setEditingSuppComm(null);
+    } catch { alert("Erreur"); }
+  }
+
   async function savePositionnement() {
     setPosSaving(true);
     try {
+      // 1. Sauvegarder positionnement métier
       await fetch(`${API}/catalog/items/${id}/positionnement`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -336,11 +470,51 @@ const [newKeyword, setNewKeyword] = useState("");
           nearby_poi:   posForm.nearby_poi   || null,
         }),
       });
-      alert("✅ Positionnement enregistré !");
+
+      // 2. Sauvegarder attributs dynamiques
+      const upsertValues = Object.entries(attrValues).map(([attr_id, val]) => ({
+        attribute_id: attr_id,
+        value: val
+      }));
+      if (upsertValues.length > 0) {
+        await fetch(`${API}/catalog/items/${id}/attributes`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ values: upsertValues }),
+        });
+      }
+
+      alert("✅ Informations enregistrées !");
     } catch {
       alert("❌ Erreur lors de l'enregistrement.");
     }
     setPosSaving(false);
+  }
+
+  async function toggleFavorite() {
+    if (!userId || !companyId) return;
+    try {
+      const res = await fetch(`${API}/catalog/favorites`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company_id: companyId, user_id: userId, item_id: id }),
+      });
+      const data = await res.json();
+      setIsFavorite(data.favorite);
+    } catch { /* silent */ }
+  }
+
+  async function cloneItem() {
+    if (!confirm("Voulez-vous vraiment dupliquer cette offre ?")) return;
+    setCloning(true);
+    try {
+      const res = await fetch(`${API}/catalog/items/${id}/clone`, { method: "POST" });
+      const data = await res.json();
+      if (data.id) router.push(`/catalog/${data.id}`);
+    } catch {
+      alert("Erreur lors de la duplication.");
+      setCloning(false);
+    }
   }
 
   function copyLink() {
@@ -358,12 +532,15 @@ const [newKeyword, setNewKeyword] = useState("");
   );
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: "infos",      label: "Infos" },
-    { key: "variantes",  label: `Variantes${variants.length > 0 ? ` (${variants.length})` : ""}` },
-    { key: "options",    label: `Options${options.length > 0 ? ` (${options.length})` : ""}` },
-    { key: "cible",      label: `Cible${linkedProfiles.length > 0 ? ` (${linkedProfiles.length})` : ""}` },
-    { key: "conditions", label: "Conditions" },
+    { key: "infos",         label: "Infos" },
+    { key: "variantes",     label: `Variantes${variants.length > 0 ? ` (${variants.length})` : ""}` },
+    { key: "options",       label: `Options${options.length > 0 ? ` (${options.length})` : ""}` },
+    { key: "cible",         label: `Cible${linkedProfiles.length > 0 ? ` (${linkedProfiles.length})` : ""}` },
+    { key: "fournisseurs",  label: `Fournisseurs${itemSuppliers.length > 0 ? ` (${itemSuppliers.length})` : ""}` },
+    { key: "conditions",   label: "Conditions" },
   ];
+
+  const alreadyLinkedSuppIds = new Set(itemSuppliers.map((s) => s.supplier_id));
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#111111]">
@@ -427,27 +604,56 @@ const [newKeyword, setNewKeyword] = useState("");
           <div className="lg:col-span-2">
             <div className="lg:sticky lg:top-6 space-y-5">
               <div>
-                {item.category && (
-                  <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 px-3 py-1 rounded-full mb-3">
-                    <Tag size={11} />{item.category}
-                  </span>
-                )}
+                <div className="flex items-center justify-between mb-3">
+                  {item.category && (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 px-3 py-1 rounded-full">
+                      <Tag size={11} />{item.category}
+                    </span>
+                  )}
+                  <div className="flex gap-2">
+                    <button onClick={toggleFavorite} className={`p-2 rounded-xl transition ${isFavorite ? "bg-amber-100 text-amber-500 hover:bg-amber-200" : "bg-white dark:bg-[#1A1A1A] text-gray-400 hover:text-amber-500 border border-gray-200 dark:border-white/5"}`} title="Mettre en favoris">
+                      <Star size={18} fill={isFavorite ? "currentColor" : "none"} />
+                    </button>
+                    <button onClick={cloneItem} disabled={cloning} className="p-2 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/5 text-gray-500 hover:text-[#7C4DFF] rounded-xl transition disabled:opacity-50" title="Dupliquer l'offre">
+                      <Copy size={18} />
+                    </button>
+                  </div>
+                </div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white leading-tight">{item.title_fr}</h1>
+              </div>
+
+              {/* COMPREHENSIVENESS SCORE */}
+              <div className="bg-white dark:bg-[#1A1A1A] rounded-2xl border border-gray-200 dark:border-white/5 p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-gray-400 uppercase tracking-wide font-medium flex items-center gap-1"><Activity size={14}/> Complétude</p>
+                  <span className={`text-sm font-bold ${completeness.score >= 80 ? "text-green-500" : completeness.score >= 50 ? "text-amber-500" : "text-red-500"}`}>{completeness.score}%</span>
+                </div>
+                <div className="w-full bg-gray-100 dark:bg-[#2A2A2A] rounded-full h-2 mb-3 overflow-hidden">
+                  <div className={`h-2 rounded-full ${completeness.score >= 80 ? "bg-green-500" : completeness.score >= 50 ? "bg-amber-500" : "bg-red-500"}`} style={{ width: `${completeness.score}%` }}></div>
+                </div>
+                {completeness.missing.length > 0 && (
+                  <div className="text-[10px] text-red-400">
+                    Manquant: {completeness.missing.slice(0, 2).join(", ")}{completeness.missing.length > 2 ? "..." : ""}
+                  </div>
+                )}
               </div>
 
               <div className="bg-white dark:bg-[#1A1A1A] rounded-2xl border border-gray-200 dark:border-white/5 p-5">
                 <p className="text-xs text-gray-400 mb-1 uppercase tracking-wide font-medium">Prix</p>
                 <p className="text-3xl font-bold text-[#7C4DFF]">{formatPrice(item.price, item.currency)}</p>
-                {item.state && (
+                {item.status && (
                   <span className={`inline-block mt-2 text-xs font-medium px-2.5 py-1 rounded-full ${
-                    item.state === "ready"    ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300" :
-                    item.state === "draft"    ? "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" :
+                    item.status === "published" ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300" :
+                    item.status === "draft"     ? "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" :
+                    item.status === "archived"  ? "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400" :
                     "bg-gray-100 text-gray-500"
                   }`}>
-                    {item.state === "ready" ? "✓ Prêt" : item.state === "draft" ? "Brouillon" : "Archivé"}
+                    {item.status === "published" ? "✓ Publié" : item.status === "draft" ? "Brouillon" : "Archivé"}
                   </span>
                 )}
               </div>
+
+
 
               {linkedProfiles.length > 0 && (
                 <div className="bg-white dark:bg-[#1A1A1A] rounded-2xl border border-gray-200 dark:border-white/5 p-4">
@@ -607,6 +813,48 @@ const [newKeyword, setNewKeyword] = useState("");
         </div>
       </div>
     </div>
+
+    {/* Attributs dynamiques */}
+    {attrDefs.length > 0 && (
+      <div className="border-t border-gray-100 dark:border-white/5 pt-5">
+        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Caractéristiques spécifiques</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {attrDefs.map(attr => (
+            <div key={attr.id}>
+              <label className="text-xs text-gray-400 mb-1 block flex justify-between">
+                <span>{attr.display_label}</span>
+                {attr.category_id && <span className="text-[9px] bg-amber-50 text-amber-600 px-1 rounded">Ciblé</span>}
+              </label>
+              {attr.data_type === "boolean" ? (
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded text-[#7C4DFF] focus:ring-[#7C4DFF]/30"
+                    checked={!!attrValues[attr.id]}
+                    onChange={e => setAttrValues(p => ({ ...p, [attr.id]: e.target.checked }))}
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">Oui</span>
+                </div>
+              ) : attr.data_type === "number" ? (
+                <input
+                  type="number"
+                  className="w-full text-sm border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2.5 bg-gray-50 dark:bg-[#2A2A2A] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]/30"
+                  value={attrValues[attr.id] || ""}
+                  onChange={e => setAttrValues(p => ({ ...p, [attr.id]: e.target.value ? parseFloat(e.target.value) : null }))}
+                />
+              ) : (
+                <input
+                  type="text"
+                  className="w-full text-sm border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2.5 bg-gray-50 dark:bg-[#2A2A2A] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]/30"
+                  value={attrValues[attr.id] || ""}
+                  onChange={e => setAttrValues(p => ({ ...p, [attr.id]: e.target.value }))}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
 
     {/* Save button */}
     <button
@@ -825,6 +1073,112 @@ const [newKeyword, setNewKeyword] = useState("");
                     >
                       {condSaving ? "Enregistrement..." : "Enregistrer les conditions"}
                     </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── FOURNISSEURS ── */}
+            {activeTab === "fournisseurs" && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-xs text-gray-400">Fournisseurs assignés à cette offre, avec leur commission.</p>
+                  <button
+                    onClick={() => { setShowAddSupplier(!showAddSupplier); loadAllSuppliers(); }}
+                    className="flex items-center gap-1.5 bg-[#7C4DFF] hover:bg-[#6A3DF0] text-white px-4 py-2 rounded-xl text-xs font-semibold transition active:scale-95"
+                  >
+                    <Plus size={14} /> Assigner un fournisseur
+                  </button>
+                </div>
+
+                {showAddSupplier && (
+                  <div className="bg-violet-50 dark:bg-violet-900/10 border border-violet-200 dark:border-violet-800/30 rounded-xl p-4 mb-4 space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="md:col-span-2">
+                        <label className="text-xs text-gray-500 mb-1 block font-medium">Fournisseur</label>
+                        <select
+                          value={selSuppId}
+                          onChange={(e) => setSelSuppId(e.target.value)}
+                          className="w-full text-sm border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 bg-white dark:bg-[#2A2A2A] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]/30"
+                        >
+                          <option value="">-- Sélectionner un fournisseur --</option>
+                          {allSuppliers.filter((s) => !alreadyLinkedSuppIds.has(s.id)).map((s) => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 mb-1 block font-medium">Commission (%)</label>
+                        <input
+                          type="number" min={0} max={100} step={0.1}
+                          placeholder="Ex: 10"
+                          value={newSuppComm}
+                          onChange={(e) => setNewSuppComm(e.target.value)}
+                          className="w-full text-sm border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 bg-white dark:bg-[#2A2A2A] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]/30"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={addSupplierToItem} disabled={!selSuppId} className="flex items-center gap-1.5 bg-[#7C4DFF] hover:bg-[#6A3DF0] disabled:opacity-40 text-white px-4 py-2 rounded-lg text-xs font-semibold transition">
+                        <Check size={13} /> Enregistrer
+                      </button>
+                      <button onClick={() => setShowAddSupplier(false)} className="text-xs text-gray-500 hover:text-gray-700 px-3">Annuler</button>
+                    </div>
+                  </div>
+                )}
+
+                {suppLoading ? (
+                  <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-14 bg-gray-100 dark:bg-[#2A2A2A] rounded-xl animate-pulse" />)}</div>
+                ) : itemSuppliers.length === 0 ? (
+                  <div className="py-12 text-center text-gray-400">
+                    <Building2 size={28} className="mx-auto mb-3 text-gray-300" />
+                    <p className="text-sm">Aucun fournisseur assigné à cette offre.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {itemSuppliers.map((link) => (
+                      <div key={link.id} className="flex items-center gap-3 p-3.5 rounded-xl bg-gray-50 dark:bg-[#2A2A2A] border border-gray-100 dark:border-white/5 group">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white flex items-center justify-center font-bold text-xs">
+                          {(link.suppliers?.name || "?").charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">{link.suppliers?.name || "Fournisseur inconnu"}</p>
+                          {link.suppliers?.description && (
+                            <p className="text-xs text-gray-400 truncate mt-0.5">{link.suppliers.description}</p>
+                          )}
+                        </div>
+                        {/* Commission */}
+                        <div className="flex items-center gap-2">
+                          {editingSuppComm === link.supplier_id ? (
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="number" min={0} max={100} step={0.1}
+                                className="w-20 text-xs border border-gray-300 dark:border-white/10 rounded-lg px-2 py-1.5 bg-white dark:bg-[#1A1A1A] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]/40"
+                                value={editSuppCommVal}
+                                onChange={(e) => setEditSuppCommVal(e.target.value)}
+                                placeholder="%"
+                              />
+                              <button onClick={() => saveSuppComm(link.supplier_id)} className="text-green-600 hover:text-green-700"><Check size={14} /></button>
+                              <button onClick={() => setEditingSuppComm(null)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => { setEditingSuppComm(link.supplier_id); setEditSuppCommVal(link.commission?.toString() ?? ""); }}
+                              className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#7C4DFF] bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 px-2.5 py-1 rounded-lg transition"
+                              title="Modifier la commission"
+                            >
+                              <Percent size={11} />
+                              {link.commission != null ? `${link.commission}%` : "—"}
+                            </button>
+                          )}
+                        </div>
+                        {/* Actions */}
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                          <a href={`/catalog/suppliers/${link.supplier_id}`} className="text-blue-400 hover:text-blue-600 p-1"><ExternalLink size={14} /></a>
+                          <button onClick={() => removeSupplierFromItem(link.supplier_id)} className="text-red-400 hover:text-red-600 p-1"><Trash2 size={14} /></button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

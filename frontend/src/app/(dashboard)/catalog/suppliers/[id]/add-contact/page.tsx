@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 
 type Supplier = {
   id: string;
@@ -13,6 +14,7 @@ export default function AddContactPage() {
   const params = useParams();
   const supplierId = params.id as string;
   const router = useRouter();
+  const { companyId } = useAuth();
 
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [name, setName] = useState("");
@@ -31,7 +33,7 @@ export default function AddContactPage() {
     setLoading(true);
     setError("");
     try {
-      const supRes = await fetch(`http://localhost:8001/catalog/suppliers/${supplierId}`);
+      const supRes = await fetch(`http://localhost:8002/catalog/suppliers/${supplierId}`);
       if (!supRes.ok) throw new Error("Fournisseur introuvable");
       const supData = await supRes.json();
       setSupplier(supData);
@@ -54,7 +56,7 @@ export default function AddContactPage() {
     setError("");
 
     try {
-      const res = await fetch(`http://localhost:8001/catalog/suppliers/${supplierId}/contacts`, {
+      const res = await fetch(`http://localhost:8002/catalog/suppliers/${supplierId}/contacts`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -63,6 +65,7 @@ export default function AddContactPage() {
           name,
           email: email || undefined,
           phone: phone || undefined,
+          company_id: companyId,
         }),
       });
 

@@ -16,9 +16,13 @@ export function SectionProvider({ children }: { children: React.ReactNode }) {
   const [activeSection, setActiveSection] = useState<SectionType>('crm');
   const pathname = usePathname();
 
-  // Simple heuristic: if path contains 'products' or 'inventory' or 'catalogue', switch to catalogue
-  // This is optional if we want URL persistence. For now, manual switch is fine or path-based.
-  // Let's stick to manual + default based on route if needed.
+  React.useEffect(() => {
+    if (pathname?.includes('/catalog') || pathname?.includes('/catalogue')) {
+      setActiveSection('catalogue');
+    } else {
+      setActiveSection('crm');
+    }
+  }, [pathname]);
   
   return (
     <SectionContext.Provider value={{ activeSection, setActiveSection }}>

@@ -13,6 +13,7 @@ export interface MainLayoutProps {
 }
 
 import { SectionProvider } from '@/providers/SectionProvider';
+import { useAuth } from '@/hooks/useAuth';
 
 export function MainLayout({
   children,
@@ -21,17 +22,21 @@ export function MainLayout({
   headerAction,
   className,
 }: MainLayoutProps) {
+  const { userName, companyName, companyId, enterprises } = useAuth();
+
   return (
     <SectionProvider>
       <div className="min-h-screen bg-white dark:bg-black">
         <Sidebar />
         <div className="md:pl-[260px] min-h-screen bg-[var(--color-bg-page-tint)] dark:bg-black">
           <Header
-            title={headerTitle}
+            title={headerTitle || companyName || "Mon Entreprise"}
             subtitle={headerSubtitle}
             actionButton={headerAction}
-            userName="James Passaquindici"
-            userId="4827682"
+            userName={userName || "Invité"}
+            userId={companyId?.slice(0, 8)}
+            enterprises={enterprises}
+            currentEnterpriseId={companyId || undefined}
           />
           <main className={cn('p-6', className)}>{children}</main>
         </div>
@@ -39,3 +44,4 @@ export function MainLayout({
     </SectionProvider>
   );
 }
+

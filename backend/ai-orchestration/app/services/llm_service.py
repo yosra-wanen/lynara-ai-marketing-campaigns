@@ -33,6 +33,11 @@ async def call_llm(prompt: str, system: str = "", max_tokens: int = 2000) -> str
             }
         )
         data = response.json()
+        print(f"LLM response status: {response.status_code}")
+        print(f"LLM response data: {data}")
+        
         if "error" in data:
             raise ValueError(f"LLM error: {data['error']['message']}")
+        if "choices" not in data:
+            raise ValueError(f"Unexpected LLM response: {data}")
         return data["choices"][0]["message"]["content"]

@@ -14,7 +14,6 @@ from app.config.settings import CRM_SERVICE_URL, MAX_LEADS_PER_JOB, SUPABASE_URL
 
 router = APIRouter()
 
-# Supabase client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY) if SUPABASE_URL and SUPABASE_SERVICE_KEY else None
 print(f"Supabase connected: {supabase is not None}")
 
@@ -38,12 +37,10 @@ class JobStatus(BaseModel):
     total_found: Optional[int] = 0
     sources_analyzed: Optional[int] = 0
 
-# In-memory job storage
 jobs_store: dict = {}
 
 
 def get_or_create_quota(company_id: str):
-    """Get quota from DB or create default."""
     try:
         if supabase:
             res = supabase.schema("core").table("ai_quotas").select("*").eq("company_id", company_id).execute()
@@ -63,7 +60,6 @@ def get_or_create_quota(company_id: str):
                 return new_quota
     except Exception as e:
         print(f"DB quota error: {e}")
-
     return {
         "searches_used": 0,
         "searches_limit": 100,
@@ -75,7 +71,6 @@ def get_or_create_quota(company_id: str):
 
 
 def update_quota(company_id: str, searches: int, leads: int, api_calls: int):
-    """Update quota in DB."""
     try:
         if supabase:
             current = get_or_create_quota(company_id)
@@ -90,7 +85,6 @@ def update_quota(company_id: str, searches: int, leads: int, api_calls: int):
 
 
 def save_search_job(company_id: str, request: LeadResearchRequest, total_found: int, sources_analyzed: int):
-    """Save search job to DB."""
     try:
         if supabase:
             result = supabase.schema("core").table("ai_search_jobs").insert({
@@ -109,12 +103,35 @@ def save_search_job(company_id: str, request: LeadResearchRequest, total_found: 
         print(f"DB search job error: {e}")
 
 
+def _build_search_queries(request: LeadResearchRequest) -> list:
+    """Build multiple search queries from the request."""
+    queries = []
+    base = request.keywords
+    location = request.location or ""
+    industry = request.industry or ""
+    persona = request.target_persona or ""
+
+    q1 = base
+    if location:
+        q1 += f" {location}"
+    queries.append(q1)
+
+    if industry and location:
+        queries.append(f"{industry} entreprise {location} contact email")
+
+    if persona and industry:
+        queries.append(f"{persona} {industry} {location} LinkedIn")
+    elif persona:
+        queries.append(f"{persona} {base} {location}")
+
+    return queries[:3]
+
+
 @router.post("/jobs")
 async def create_lead_research_job(
     request: LeadResearchRequest,
     company_id: str = Query(...)
 ):
-    """Launch a new lead research job."""
     try:
         import uuid
         job_id = str(uuid.uuid4())
@@ -131,18 +148,63 @@ async def create_lead_research_job(
             "request": request.dict()
         }
 
-        raw_results = f"""
-        Search results for: {request.keywords}
-        Location: {request.location or 'Not specified'}
-        Industry: {request.industry or 'Not specified'}
-        Found multiple companies and contacts matching the criteria.
-        Several businesses in the {request.industry or 'target'} sector
-        located in {request.location or 'the region'}.
-        """
+        # Step 1: Build smart search queries
+        queries = _build_search_queries(request)
+        print(f"Search queries: {queries}")
 
-        jobs_store[job_id]["progress"] = 40
-        jobs_store[job_id]["message"] = "Analyse des sources en cours..."
-        jobs_store[job_id]["sources_analyzed"] = random.randint(3, 8)
+        # Step 2: Search the web with SerpAPI
+        from app.services.serpapi_service import search_web
+        all_results = []
+        for query in queries:
+            results = await search_web(
+                query=query,
+                location=request.location or "",
+                num_results=5
+            )
+            all_results.extend(results)
+            print(f"SerpAPI results for '{query}': {len(results)} results")
+
+        jobs_store[job_id]["progress"] = 30
+        jobs_store[job_id]["message"] = f"Analyse de {len(all_results)} sources web..."
+        jobs_store[job_id]["sources_analyzed"] = len(all_results)
+
+        # Step 2.5: Enrich top results with Firecrawl
+        from app.services.firecrawl_service import crawl_page
+        enriched_results = []
+        crawl_limit = 3 if request.search_depth == "standard" else 5 if request.search_depth == "deep" else 1
+        
+        for r in all_results[:crawl_limit]:
+            try:
+                print(f"Firecrawl crawling: {r['link'][:60]}...")
+                content = await crawl_page(r['link'])
+                enriched_results.append({
+                    **r,
+                    "full_content": content[:1500] if content else ""
+                })
+                print(f"Firecrawl success: {len(content)} chars extracted")
+            except Exception as e:
+                print(f"Firecrawl failed for {r['link']}: {e}")
+                enriched_results.append({**r, "full_content": ""})
+
+        # Add remaining results without crawling
+        for r in all_results[crawl_limit:]:
+            enriched_results.append({**r, "full_content": ""})
+
+        jobs_store[job_id]["progress"] = 55
+        jobs_store[job_id]["message"] = f"Extraction du contenu terminée ({len(enriched_results)} pages)..."
+
+        # Step 3: Format enriched results for AI
+        raw_results = "\n\n---\n\n".join([
+            f"Title: {r['title']}\nURL: {r['link']}\nSnippet: {r['snippet']}\n"
+            + (f"Full content: {r['full_content']}" if r.get('full_content') else "")
+            for r in enriched_results
+        ]) if enriched_results else f"No web results found for: {request.keywords} in {request.location}"
+
+        print(f"Raw results sent to AI ({len(raw_results)} chars):\n{raw_results[:300]}...")
+
+        # Step 4: AI extracts and scores leads
+        jobs_store[job_id]["progress"] = 70
+        jobs_store[job_id]["message"] = "Scoring et qualification des leads par IA..."
 
         prompt = get_extraction_prompt(
             request.keywords,
@@ -152,10 +214,9 @@ async def create_lead_research_job(
         )
 
         ai_response = await call_ai(prompt, SYSTEM_PROMPT)
+        print(f"AI response: {ai_response[:300]}...")
 
-        jobs_store[job_id]["progress"] = 70
-        jobs_store[job_id]["message"] = "Scoring et qualification des leads..."
-
+        # Step 5: Parse AI response
         try:
             clean = ai_response.strip()
             if "```json" in clean:
@@ -163,20 +224,22 @@ async def create_lead_research_job(
             elif "```" in clean:
                 clean = clean.split("```")[1].split("```")[0]
             leads = json.loads(clean)
-        except:
+            if not isinstance(leads, list):
+                leads = _generate_mock_leads(request)
+        except Exception as e:
+            print(f"JSON parse error: {e}")
             leads = _generate_mock_leads(request)
 
+        # Step 6: Limit and enrich leads
         leads = leads[:min(request.volume or 10, MAX_LEADS_PER_JOB)]
-
         for i, lead in enumerate(leads):
             lead["temp_id"] = f"temp_{i}"
             lead["status"] = "new"
             lead["priority"] = "high" if lead.get("score", 0) >= 70 else "medium"
             lead["keyword_match"] = request.keywords
 
-        sources_analyzed = random.randint(5, 15)
+        sources_analyzed = len(all_results)
 
-        # Save to DB
         save_search_job(company_id, request, len(leads), sources_analyzed)
         update_quota(company_id, searches=1, leads=len(leads), api_calls=sources_analyzed)
 
@@ -200,15 +263,14 @@ async def create_lead_research_job(
         }
 
     except Exception as e:
+        print(f"Job error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/jobs/{job_id}")
 async def get_job_status(job_id: str, company_id: str = Query(...)):
-    """Get job status and results."""
     if job_id not in jobs_store:
         raise HTTPException(status_code=404, detail="Job not found")
-
     job = jobs_store[job_id]
     return {
         "success": True,
@@ -228,21 +290,16 @@ async def import_leads_to_crm(
     company_id: str = Query(...),
     lead_indices: Optional[List[int]] = None
 ):
-    """Import selected leads to CRM."""
     if job_id not in jobs_store:
         raise HTTPException(status_code=404, detail="Job not found")
-
     job = jobs_store[job_id]
     leads = job.get("leads", [])
-
     if lead_indices:
         leads_to_import = [leads[i] for i in lead_indices if i < len(leads)]
     else:
         leads_to_import = leads
-
     imported = 0
     errors = []
-
     async with httpx.AsyncClient(timeout=30) as client:
         for lead in leads_to_import:
             try:
@@ -266,7 +323,6 @@ async def import_leads_to_crm(
                     errors.append(f"Failed to import {lead.get('customer_name', 'unknown')}")
             except Exception as e:
                 errors.append(str(e))
-
     return {
         "success": True,
         "imported": imported,
@@ -277,17 +333,12 @@ async def import_leads_to_crm(
 
 @router.get("/quotas")
 async def get_quotas(company_id: str = Query(...)):
-    """Get quota usage for a company."""
     quota = get_or_create_quota(company_id)
-    return {
-        "success": True,
-        "data": quota
-    }
+    return {"success": True, "data": quota}
 
 
 @router.get("/history")
 async def get_search_history(company_id: str = Query(...)):
-    """Get search history from DB."""
     try:
         if supabase:
             res = supabase.schema("core").table("ai_search_jobs").select("*").eq(
@@ -298,9 +349,9 @@ async def get_search_history(company_id: str = Query(...)):
         print(f"DB history error: {e}")
     return {"success": True, "data": []}
 
+
 @router.get("/templates")
 async def get_templates(company_id: str = Query(...)):
-    """Get saved templates from DB."""
     try:
         if supabase:
             res = supabase.schema("core").table("ai_templates").select("*").eq(
@@ -314,7 +365,6 @@ async def get_templates(company_id: str = Query(...)):
 
 @router.post("/templates")
 async def save_template(company_id: str = Query(...), template: dict = None):
-    """Save a template to DB."""
     try:
         if supabase:
             template["company_id"] = company_id
@@ -327,7 +377,6 @@ async def save_template(company_id: str = Query(...), template: dict = None):
 
 @router.delete("/templates/{template_id}")
 async def delete_template(template_id: str, company_id: str = Query(...)):
-    """Delete a template from DB."""
     try:
         if supabase:
             supabase.schema("core").table("ai_templates").delete().eq(
@@ -338,9 +387,9 @@ async def delete_template(template_id: str, company_id: str = Query(...)):
         print(f"DB delete template error: {e}")
     return {"success": False}
 
+
 @router.get("/segments")
 async def get_dynamic_segments(company_id: str = Query(...)):
-    """Get dynamic segments from DB."""
     try:
         if supabase:
             res = supabase.schema("core").table("ai_dynamic_segments").select("*").eq(
@@ -354,7 +403,6 @@ async def get_dynamic_segments(company_id: str = Query(...)):
 
 @router.post("/segments")
 async def save_dynamic_segment(company_id: str = Query(...), segment: dict = None):
-    """Save a dynamic segment to DB."""
     try:
         if supabase:
             segment["company_id"] = company_id
@@ -367,7 +415,6 @@ async def save_dynamic_segment(company_id: str = Query(...), segment: dict = Non
 
 @router.put("/segments/{segment_id}")
 async def update_dynamic_segment(segment_id: str, company_id: str = Query(...), segment: dict = None):
-    """Update a dynamic segment in DB."""
     try:
         if supabase:
             supabase.schema("core").table("ai_dynamic_segments").update(segment).eq(
@@ -381,7 +428,6 @@ async def update_dynamic_segment(segment_id: str, company_id: str = Query(...), 
 
 @router.delete("/segments/{segment_id}")
 async def delete_dynamic_segment(segment_id: str, company_id: str = Query(...)):
-    """Delete a dynamic segment from DB."""
     try:
         if supabase:
             supabase.schema("core").table("ai_dynamic_segments").delete().eq(
@@ -392,12 +438,11 @@ async def delete_dynamic_segment(segment_id: str, company_id: str = Query(...)):
         print(f"DB delete segment error: {e}")
     return {"success": False}
 
+
 def _generate_mock_leads(request: LeadResearchRequest) -> list:
-    """Generate mock leads when AI is not available."""
     first_names = ["Ahmed", "Mohamed", "Yasmine", "Sara", "Karim", "Nour", "Sami", "Lina", "Omar", "Fatma"]
     last_names = ["Ben Ali", "Trabelsi", "Hamdi", "Mejri", "Gharbi", "Mansour", "Slim", "Rekik"]
     companies = ["Tech Solutions", "Digital Agency", "Consulting Group", "Innovation Lab", "Smart Systems", "Data Corp"]
-
     leads = []
     for i in range(request.volume or 10):
         first = random.choice(first_names)

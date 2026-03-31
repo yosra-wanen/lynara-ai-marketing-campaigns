@@ -16,6 +16,9 @@ import {
   LogOut,
   CircleDollarSign,
   ShoppingBag,
+  Building2,
+  Truck,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/providers/I18nProvider';
@@ -45,18 +48,22 @@ const crmMenuItems: NavItem[] = [
 const crmExploreItems: NavItem[] = [
   { href: '/reports', labelKey: 'reports', icon: <BarChart3 size={20} /> },
   { href: '/automations', labelKey: 'automations', icon: <Workflow size={20} /> },
+  { href: '/enterprises', labelKey: 'enterprises', icon: <Building2 size={20} /> },
   { href: '/settings', labelKey: 'settings', icon: <Settings size={20} /> },
 ];
 
 const catalogueMenuItems: NavItem[] = [
-  { href: '/dashboard', labelKey: 'dashboard', icon: <LayoutDashboard size={20} /> },
-  { href: '/services', labelKey: 'services', icon: <ShoppingBag size={20} /> }, // Services as Products
-  { href: '/accounting', labelKey: 'accounting', icon: <CircleDollarSign size={20} /> },
+  { href: '/dashboard',          labelKey: 'dashboard',   icon: <LayoutDashboard size={20} /> },
+  { href: '/catalog',            labelKey: 'services',    icon: <ShoppingBag size={20} /> },
+  { href: '/catalog/suppliers',  labelKey: 'suppliers',   icon: <Truck size={20} /> },
+  { href: '/catalog/settings',   labelKey: 'settings',    icon: <SlidersHorizontal size={20} /> },
+  { href: '/accounting',         labelKey: 'accounting',  icon: <CircleDollarSign size={20} /> },
 ];
 
 const catalogueExploreItems: NavItem[] = [
   { href: '/reports', labelKey: 'reports', icon: <BarChart3 size={20} /> },
   { href: '/automations', labelKey: 'automations', icon: <Workflow size={20} /> },
+  { href: '/enterprises', labelKey: 'enterprises', icon: <Building2 size={20} /> },
   { href: '/settings', labelKey: 'settings', icon: <Settings size={20} /> },
 ];
 

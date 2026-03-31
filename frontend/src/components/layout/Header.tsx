@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Search, ChevronDown, User, LogOut, Building2, Plus, Sun, Moon, Globe } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
@@ -10,6 +11,7 @@ import { SectionSwitcher } from '@/components/ui/SectionSwitcher';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/providers/I18nProvider';
 import { locales, localeNames, type Locale } from '@/lib/i18n';
+import { supabase } from '@/lib/supabase';
 
 export interface EnterpriseItem {
   id: string;
@@ -37,6 +39,8 @@ const defaultEnterprises: EnterpriseItem[] = [
   { id: '2', name: 'Acme Corp', role: 'ADMIN', description: 'Import / Export' },
 ];
 
+
+
 export function Header({
   title,
   subtitle,
@@ -52,13 +56,20 @@ export function Header({
 }: HeaderProps) {
   const { t, locale, setLocale } = useTranslation();
   const { theme, setTheme } = useTheme();
+  const pathname = usePathname();
   const [enterpriseOpen, setEnterpriseOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const enterpriseRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
   const currentId = currentEnterpriseId ?? enterprises[0]?.id;
-  const currentEnterprise = enterprises.find((e) => e.id === currentId) ?? enterprises[0];
+  const currentEnterprise = (Array.isArray(enterprises) && enterprises.length > 0)
+    ? (enterprises.find((e) => e.id === currentId) ?? enterprises[0])
+    : defaultEnterprises[0];
+
+  // Preserve the current top-level route when switching enterprise
+  const currentSection = '/' + (pathname?.split('/')[1] ?? 'dashboard');
+
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -99,27 +110,48 @@ export function Header({
               style={{ boxShadow: '0 25px 50px -12px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.02)' }}
             >
               <p className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                {t('header', 'enterprises')}
+                Choisir ton entreprise
               </p>
               {enterprises.map((ent, i) => (
-                <Link
+                <button
                   key={ent.id}
-                  href="/dashboard"
-                  onClick={() => setEnterpriseOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-all duration-200 animate-dropdown-item opacity-0 [animation-fill-mode:forwards]"
+                  onClick={async () => {
+                    setEnterpriseOpen(false);
+                    // CAT-01-01: Persistent enterprise switch
+                    const { error } = await supabase.auth.updateUser({
+                      data: { active_company_id: ent.id, company_id: ent.id }
+                    });
+                    if (error) console.error("Switch error:", error);
+                    window.location.href = currentSection;
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-all duration-200 animate-dropdown-item opacity-0 [animation-fill-mode:forwards]"
                   style={{ animationDelay: `${40 + i * 35}ms` }}
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#E8E0FF] dark:bg-[#A079FF]/20 text-[#7C4DFF] dark:text-[#B394FF]">
                     <Building2 size={18} />
                   </div>
                   <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{ent.name}</span>
-                </Link>
+                  {ent.id === currentId && (
+                    <div className="ml-auto w-2 h-2 rounded-full bg-[#7C4DFF]" />
+                  )}
+                </button>
               ))}
+              <Link
+                href="/enterprises"
+                onClick={() => setEnterpriseOpen(false)}
+                className="mx-2 mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-all duration-200 animate-dropdown-item opacity-0 [animation-fill-mode:forwards]"
+                style={{ animationDelay: `${40 + enterprises.length * 35}ms` }}
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gray-100 dark:bg-[#1A1A1A]">
+                  <Building2 size={18} className="text-gray-600 dark:text-gray-400" />
+                </div>
+                <span>Mes Entreprises</span>
+              </Link>
               <Link
                 href="/create-enterprise"
                 onClick={() => setEnterpriseOpen(false)}
-                className="mx-2 mt-2 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[#7C4DFF] dark:text-[#B394FF] hover:bg-[#E8E0FF] dark:hover:bg-[#A079FF]/20 transition-all duration-200 animate-dropdown-item opacity-0 [animation-fill-mode:forwards]"
-                style={{ animationDelay: `${40 + enterprises.length * 35}ms` }}
+                className="mx-2 mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[#7C4DFF] dark:text-[#B394FF] hover:bg-[#E8E0FF] dark:hover:bg-[#A079FF]/20 transition-all duration-200 animate-dropdown-item opacity-0 [animation-fill-mode:forwards]"
+                style={{ animationDelay: `${40 + (enterprises.length + 1) * 35}ms` }}
               >
                 <Plus size={18} className="shrink-0" />
                 {t('header', 'createEnterprise')}
@@ -147,6 +179,13 @@ export function Header({
           </div>
         )}
         {actionButton}
+        <Link 
+          href="/enterprises"
+          className="p-2 rounded-xl text-gray-500 hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-colors"
+          title="Mes Entreprises"
+        >
+          <Building2 size={20} />
+        </Link>
         <div className="relative border-l border-gray-100 dark:border-[#262626] pl-3 md:pl-4" ref={profileRef}>
           <button
             type="button"
@@ -180,7 +219,7 @@ export function Header({
                   {enterprises.map((ent, i) => (
                     <li key={ent.id}>
                       <Link
-                        href="/dashboard"
+                        href={currentSection}
                         onClick={() => setProfileOpen(false)}
                         className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-all duration-200 animate-dropdown-item opacity-0 [animation-fill-mode:forwards]"
                         style={{ animationDelay: `${50 + i * 35}ms` }}

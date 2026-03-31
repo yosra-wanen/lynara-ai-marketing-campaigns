@@ -8,11 +8,13 @@
   "contracts": "Contracts",
   "forms": "Forms",
   "scheduling": "Scheduling",
-  "services": "Services",
+  "services": "Offers",
+  "suppliers": "Suppliers",
   "accounting": "Accounting",
   "reports": "Reports",
   "automations": "Automations",
   "settings": "Settings",
   "profile": "My Profile",
+  "enterprises": "My Companies",
   "logout": "Logout"
 }

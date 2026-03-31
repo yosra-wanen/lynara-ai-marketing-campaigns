@@ -17,6 +17,7 @@ router = APIRouter()
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY) if SUPABASE_URL and SUPABASE_SERVICE_KEY else None
 print(f"Supabase connected: {supabase is not None}")
 
+
 class LeadResearchRequest(BaseModel):
     keywords: str
     location: Optional[str] = None
@@ -28,6 +29,7 @@ class LeadResearchRequest(BaseModel):
     quality_vs_quantity: Optional[str] = "quality"
     search_depth: Optional[str] = "standard"
 
+
 class JobStatus(BaseModel):
     job_id: str
     status: str
@@ -37,13 +39,90 @@ class JobStatus(BaseModel):
     total_found: Optional[int] = 0
     sources_analyzed: Optional[int] = 0
 
+
+class CompanyTargetParams(BaseModel):
+    default_location: Optional[str] = None
+    default_industry: Optional[str] = None
+    default_persona: Optional[str] = None
+    default_volume: Optional[int] = 10
+    allowed_sources: Optional[List[str]] = ["web", "linkedin", "annuaires"]
+
+
 jobs_store: dict = {}
 
+
+# ─── LEAD-AI-06-02: Access Control ────────────────────────────────────────────
+
+def check_ai_access(company_id: str, user_id: str) -> bool:
+    """Check if user has access to AI module (only owner role)."""
+    try:
+        if supabase:
+            res = supabase.schema("core").table("company_members").select("role").eq(
+                "company_id", company_id
+            ).eq("user_id", user_id).single().execute()
+            if res.data:
+                role = res.data.get("role")
+                print(f"Access check: user {user_id} has role '{role}'")
+                return role == "owner"
+    except Exception as e:
+        print(f"Access check error: {e}")
+    return False
+
+
+# ─── LEAD-AI-06-03: Company Target Params ─────────────────────────────────────
+
+def get_company_target_params(company_id: str) -> dict:
+    """Get default target params for a company from ai_configs."""
+    try:
+        if supabase:
+            res = supabase.schema("core").table("ai_configs").select(
+                "additional_config"
+            ).eq("company_id", company_id).eq("is_active", True).execute()
+            if res.data and len(res.data) > 0:
+                config = res.data[0].get("additional_config") or {}
+                target_params = config.get("target_params", {})
+                print(f"Company target params loaded: {target_params}")
+                return target_params
+    except Exception as e:
+        print(f"Target params error: {e}")
+    return {}
+
+
+def save_company_target_params(company_id: str, params: dict):
+    """Save default target params for a company."""
+    try:
+        if supabase:
+            # Check if config exists
+            res = supabase.schema("core").table("ai_configs").select("config_id").eq(
+                "company_id", company_id
+            ).execute()
+            if res.data and len(res.data) > 0:
+                # Update existing
+                config_id = res.data[0]["config_id"]
+                supabase.schema("core").table("ai_configs").update({
+                    "additional_config": {"target_params": params}
+                }).eq("config_id", config_id).execute()
+            else:
+                # Insert new
+                supabase.schema("core").table("ai_configs").insert({
+                    "company_id": company_id,
+                    "additional_config": {"target_params": params},
+                    "is_active": True,
+                    "is_default": True,
+                }).execute()
+            print(f"Target params saved for {company_id}")
+    except Exception as e:
+        print(f"Save target params error: {e}")
+
+
+# ─── Quota Management ─────────────────────────────────────────────────────────
 
 def get_or_create_quota(company_id: str):
     try:
         if supabase:
-            res = supabase.schema("core").table("ai_quotas").select("*").eq("company_id", company_id).execute()
+            res = supabase.schema("core").table("ai_quotas").select("*").eq(
+                "company_id", company_id
+            ).execute()
             if res.data and len(res.data) > 0:
                 return res.data[0]
             else:
@@ -127,12 +206,36 @@ def _build_search_queries(request: LeadResearchRequest) -> list:
     return queries[:3]
 
 
+# ─── Main Job Endpoint ─────────────────────────────────────────────────────────
+
 @router.post("/jobs")
 async def create_lead_research_job(
     request: LeadResearchRequest,
-    company_id: str = Query(...)
+    company_id: str = Query(...),
+    user_id: Optional[str] = Query(None)
 ):
     try:
+        # LEAD-AI-06-02: Check access if user_id provided
+        if user_id:
+            has_access = check_ai_access(company_id, user_id)
+            if not has_access:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Accès refusé. Seuls les propriétaires peuvent lancer des recherches IA."
+                )
+
+        # LEAD-AI-06-03: Apply company default params if not provided
+        company_defaults = get_company_target_params(company_id)
+        if not request.location and company_defaults.get("default_location"):
+            request.location = company_defaults["default_location"]
+            print(f"Applied default location: {request.location}")
+        if not request.industry and company_defaults.get("default_industry"):
+            request.industry = company_defaults["default_industry"]
+            print(f"Applied default industry: {request.industry}")
+        if not request.target_persona and company_defaults.get("default_persona"):
+            request.target_persona = company_defaults["default_persona"]
+            print(f"Applied default persona: {request.target_persona}")
+
         import uuid
         job_id = str(uuid.uuid4())
 
@@ -172,7 +275,7 @@ async def create_lead_research_job(
         from app.services.firecrawl_service import crawl_page
         enriched_results = []
         crawl_limit = 3 if request.search_depth == "standard" else 5 if request.search_depth == "deep" else 1
-        
+
         for r in all_results[:crawl_limit]:
             try:
                 print(f"Firecrawl crawling: {r['link'][:60]}...")
@@ -186,7 +289,6 @@ async def create_lead_research_job(
                 print(f"Firecrawl failed for {r['link']}: {e}")
                 enriched_results.append({**r, "full_content": ""})
 
-        # Add remaining results without crawling
         for r in all_results[crawl_limit:]:
             enriched_results.append({**r, "full_content": ""})
 
@@ -262,10 +364,14 @@ async def create_lead_research_job(
             "message": f"{len(leads)} leads trouvés!"
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Job error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# ─── Other Job Endpoints ───────────────────────────────────────────────────────
 
 @router.get("/jobs/{job_id}")
 async def get_job_status(job_id: str, company_id: str = Query(...)):
@@ -331,11 +437,47 @@ async def import_leads_to_crm(
     }
 
 
+# ─── Quotas ───────────────────────────────────────────────────────────────────
+
 @router.get("/quotas")
 async def get_quotas(company_id: str = Query(...)):
     quota = get_or_create_quota(company_id)
     return {"success": True, "data": quota}
 
+
+# ─── LEAD-AI-06-02: Access Rules Endpoints ────────────────────────────────────
+
+@router.get("/access")
+async def check_access(company_id: str = Query(...), user_id: str = Query(...)):
+    """Check if user has access to AI module."""
+    has_access = check_ai_access(company_id, user_id)
+    return {
+        "success": True,
+        "has_access": has_access,
+        "message": "Accès autorisé" if has_access else "Accès refusé — rôle owner requis"
+    }
+
+
+# ─── LEAD-AI-06-03: Company Target Params Endpoints ───────────────────────────
+
+@router.get("/target-params")
+async def get_target_params(company_id: str = Query(...)):
+    """Get default target params for a company."""
+    params = get_company_target_params(company_id)
+    return {"success": True, "data": params}
+
+
+@router.post("/target-params")
+async def save_target_params(
+    company_id: str = Query(...),
+    params: CompanyTargetParams = None
+):
+    """Save default target params for a company."""
+    save_company_target_params(company_id, params.dict())
+    return {"success": True, "message": "Paramètres de cible sauvegardés!"}
+
+
+# ─── History ──────────────────────────────────────────────────────────────────
 
 @router.get("/history")
 async def get_search_history(company_id: str = Query(...)):
@@ -349,6 +491,8 @@ async def get_search_history(company_id: str = Query(...)):
         print(f"DB history error: {e}")
     return {"success": True, "data": []}
 
+
+# ─── Templates ────────────────────────────────────────────────────────────────
 
 @router.get("/templates")
 async def get_templates(company_id: str = Query(...)):
@@ -387,6 +531,8 @@ async def delete_template(template_id: str, company_id: str = Query(...)):
         print(f"DB delete template error: {e}")
     return {"success": False}
 
+
+# ─── Segments ─────────────────────────────────────────────────────────────────
 
 @router.get("/segments")
 async def get_dynamic_segments(company_id: str = Query(...)):
@@ -438,6 +584,8 @@ async def delete_dynamic_segment(segment_id: str, company_id: str = Query(...)):
         print(f"DB delete segment error: {e}")
     return {"success": False}
 
+
+# ─── Mock Lead Generator ──────────────────────────────────────────────────────
 
 def _generate_mock_leads(request: LeadResearchRequest) -> list:
     first_names = ["Ahmed", "Mohamed", "Yasmine", "Sara", "Karim", "Nour", "Sami", "Lina", "Omar", "Fatma"]

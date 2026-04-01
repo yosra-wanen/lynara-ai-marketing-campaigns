@@ -17,6 +17,9 @@ import frAccounting from "@/locales/fr/accounting.json";
 import frLanding from "@/locales/fr/landing.json";
 import frAuth from "@/locales/fr/auth.json";
 import frProfile from "@/locales/fr/profile.json";
+import frValidation from "@/locales/fr/validation.json";
+
+import enValidation from "@/locales/en/validation.json";
 
 import enCommon from "@/locales/en/common.json";
 import enHome from "@/locales/en/home.json";
@@ -64,6 +67,7 @@ export const translations: Record<
     landing: frLanding as Record<string, string>,
     auth: frAuth as Record<string, string>,
     profile: frProfile as Record<string, string>,
+    validation: frValidation as Record<string, string>,
   },
   en: {
     common: enCommon as Record<string, string>,
@@ -85,6 +89,7 @@ export const translations: Record<
     landing: enLanding as Record<string, string>,
     auth: enAuth as Record<string, string>,
     profile: enProfile as Record<string, string>,
+    validation: enValidation as Record<string, string>,
   },
   ar: {
     common: frCommon as Record<string, string>,
@@ -106,5 +111,6 @@ export const translations: Record<
     landing: frLanding as Record<string, string>,
     auth: frAuth as Record<string, string>,
     profile: frProfile as Record<string, string>,
+    validation: frValidation as Record<string, string>,
   },
 };

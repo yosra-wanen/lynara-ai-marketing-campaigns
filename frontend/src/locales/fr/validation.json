@@ -29,5 +29,20 @@
     "keyAutoUpdated": "Mis à jour automatiquement selon le fournisseur.",
     "saving": "Enreg...",
     "save": "Enregistrer",
-    "noPermission": "Seuls les owners et admins peuvent gérer les clés AI."
+    "noPermission": "Seuls les owners et admins peuvent gérer les clés AI.",
+    "aiProviderAlreadyExists": "Ce fournisseur a déjà une clé configurée.",
+    "addApiKey": "Ajouter une clé API",
+    "provider": "Fournisseur",
+    "apiKeyLabel": "Clé API",
+    "editKeyTitle": "Modifier la clé",
+    "currentKey": "Clé actuelle",
+    "deleteKey": "Supprimer la clé",
+    "deleteKeyConfirm": "Supprimer la clé API de",
+    "deleteKeyWarning": "Cette action est irréversible. La clé sera définitivement supprimée.",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "aiKeysEncryptedInfo": "Les clés API sont chiffrées avant leur stockage et partagées entre les propriétaires et les administrateurs de l'entreprise.",
+    "noAiKeysConfigured": "Aucune clé AI n'est encore configurée pour votre entreprise.",
+    "noAiKeysConfiguredSub": "Ajoutez une clé API pour commencer à utiliser les fonctionnalités d'intelligence artificielle.",
+    "aiKeyDeleted": "Clé supprimée avec succès."
 }

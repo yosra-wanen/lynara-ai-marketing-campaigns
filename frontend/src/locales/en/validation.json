@@ -29,5 +29,20 @@
     "keyAutoUpdated": "Automatically updated based on the provider.",
     "saving": "Saving...",
     "save": "Save",
-    "noPermission": "Only owners and admins can manage AI keys."
+    "noPermission": "Only owners and admins can manage AI keys.",
+    "aiProviderAlreadyExists": "This provider already has a configured key.",
+    "addApiKey": "Add API key",
+    "provider": "Provider",
+    "apiKeyLabel": "API Key",
+    "editKeyTitle": "Edit key",
+    "currentKey": "Current key",
+    "deleteKey": "Delete key",
+    "deleteKeyConfirm": "Delete the API key for",
+    "deleteKeyWarning": "This action is irreversible. The key will be permanently deleted.",
+    "active": "Active",
+    "inactive": "Inactive",
+    "aiKeysEncryptedInfo": "API keys are securely encrypted before storage and shared among the company's owners and administrators.",
+    "noAiKeysConfigured": "No AI keys have been configured for your company yet.",
+    "noAiKeysConfiguredSub": "Add an API key to start using AI features.",
+    "aiKeyDeleted": "Key deleted successfully."
 }

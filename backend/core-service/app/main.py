@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import auth, ocr, profile, company, catalog, suppliers
+from app.api import auth, ocr, profile, company, catalog, suppliers, ai_config
 # Load environment variables from .env file
 load_dotenv()
 
@@ -30,6 +30,8 @@ app.include_router(profile.router, prefix="/profile", tags=["profile"])
 app.include_router(company.router, prefix="/company", tags=["company"]) 
 app.include_router(catalog.router, prefix="/catalog", tags=["catalog"])
 app.include_router(suppliers.router, prefix="/catalog/suppliers", tags=["suppliers"])
+app.include_router(ai_config.router, prefix="/company/{company_id}/ai-configs", tags=["ai-config"])
+
 
 @app.get("/")
 async def root():

@@ -62,7 +62,7 @@ export default function LoginPage() {
       </div>
 
       <Card variant="elevated" padding="lg" className="space-y-6">
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <form className="space-y-4" method="post" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <label className="text-sm font-medium text-[#1E293B] dark:text-[#F5F5F5]">
               {translator.translate('auth', 'emailLabel')}

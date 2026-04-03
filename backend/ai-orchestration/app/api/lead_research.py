@@ -5,17 +5,24 @@ from pydantic import BaseModel
 from typing import Optional, List
 import json
 import random
+import time
 import httpx
 from supabase import create_client, Client
 
 from app.services.ai_client import call_ai
 from app.prompts.lead_research import SYSTEM_PROMPT, get_extraction_prompt
-from app.config.settings import CRM_SERVICE_URL, MAX_LEADS_PER_JOB, SUPABASE_URL, SUPABASE_SERVICE_KEY
+from app.config.settings import (
+    CRM_SERVICE_URL, MAX_LEADS_PER_JOB, SUPABASE_URL, SUPABASE_SERVICE_KEY,
+    MASKED_KEYS
+)
+from app.services.rate_limiter import rate_limiter
+from app.services.metrics import metrics
 
 router = APIRouter()
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY) if SUPABASE_URL and SUPABASE_SERVICE_KEY else None
-print(f"Supabase connected: {supabase is not None}")
+print(f"[INIT] Supabase connected: {supabase is not None}")
+print(f"[INIT] Masked keys loaded: {MASKED_KEYS}")
 
 
 class LeadResearchRequest(BaseModel):
@@ -62,10 +69,10 @@ def check_ai_access(company_id: str, user_id: str) -> bool:
             ).eq("user_id", user_id).single().execute()
             if res.data:
                 role = res.data.get("role")
-                print(f"Access check: user {user_id} has role '{role}'")
+                print(f"[ACCESS] user {user_id[:8]}... has role '{role}'")
                 return role == "owner"
     except Exception as e:
-        print(f"Access check error: {e}")
+        print(f"[ACCESS] Check error: {e}")
     return False
 
 
@@ -81,10 +88,10 @@ def get_company_target_params(company_id: str) -> dict:
             if res.data and len(res.data) > 0:
                 config = res.data[0].get("additional_config") or {}
                 target_params = config.get("target_params", {})
-                print(f"Company target params loaded: {target_params}")
+                print(f"[CONFIG] Target params loaded: {target_params}")
                 return target_params
     except Exception as e:
-        print(f"Target params error: {e}")
+        print(f"[CONFIG] Target params error: {e}")
     return {}
 
 
@@ -92,27 +99,24 @@ def save_company_target_params(company_id: str, params: dict):
     """Save default target params for a company."""
     try:
         if supabase:
-            # Check if config exists
             res = supabase.schema("core").table("ai_configs").select("config_id").eq(
                 "company_id", company_id
             ).execute()
             if res.data and len(res.data) > 0:
-                # Update existing
                 config_id = res.data[0]["config_id"]
                 supabase.schema("core").table("ai_configs").update({
                     "additional_config": {"target_params": params}
                 }).eq("config_id", config_id).execute()
             else:
-                # Insert new
                 supabase.schema("core").table("ai_configs").insert({
                     "company_id": company_id,
                     "additional_config": {"target_params": params},
                     "is_active": True,
                     "is_default": True,
                 }).execute()
-            print(f"Target params saved for {company_id}")
+            print(f"[CONFIG] Target params saved for {company_id[:8]}...")
     except Exception as e:
-        print(f"Save target params error: {e}")
+        print(f"[CONFIG] Save error: {e}")
 
 
 # ─── Quota Management ─────────────────────────────────────────────────────────
@@ -138,7 +142,7 @@ def get_or_create_quota(company_id: str):
                 supabase.schema("core").table("ai_quotas").insert(new_quota).execute()
                 return new_quota
     except Exception as e:
-        print(f"DB quota error: {e}")
+        print(f"[QUOTA] DB error: {e}")
     return {
         "searches_used": 0,
         "searches_limit": 100,
@@ -158,9 +162,9 @@ def update_quota(company_id: str, searches: int, leads: int, api_calls: int):
                 "leads_collected": current.get("leads_collected", 0) + leads,
                 "api_calls": current.get("api_calls", 0) + api_calls,
             }).eq("company_id", company_id).execute()
-            print(f"Quota updated for {company_id}")
+            print(f"[QUOTA] Updated for {company_id[:8]}...")
     except Exception as e:
-        print(f"DB quota update error: {e}")
+        print(f"[QUOTA] Update error: {e}")
 
 
 def save_search_job(company_id: str, request: LeadResearchRequest, total_found: int, sources_analyzed: int):
@@ -177,9 +181,9 @@ def save_search_job(company_id: str, request: LeadResearchRequest, total_found: 
                 "total_imported": 0,
                 "status": "completed",
             }).execute()
-            print(f"Search job saved: {result.data}")
+            print(f"[DB] Search job saved: {result.data[0]['id'] if result.data else 'unknown'}")
     except Exception as e:
-        print(f"DB search job error: {e}")
+        print(f"[DB] Save job error: {e}")
 
 
 def _build_search_queries(request: LeadResearchRequest) -> list:
@@ -214,8 +218,10 @@ async def create_lead_research_job(
     company_id: str = Query(...),
     user_id: Optional[str] = Query(None)
 ):
+    job_start_time = time.time()
+
     try:
-        # LEAD-AI-06-02: Check access if user_id provided
+        # LEAD-AI-06-02: Check access
         if user_id:
             has_access = check_ai_access(company_id, user_id)
             if not has_access:
@@ -224,17 +230,27 @@ async def create_lead_research_job(
                     detail="Accès refusé. Seuls les propriétaires peuvent lancer des recherches IA."
                 )
 
-        # LEAD-AI-06-03: Apply company default params if not provided
+        # Section 8: Rate limit check on AI calls
+        if not rate_limiter.check_ai(company_id):
+            raise HTTPException(
+                status_code=429,
+                detail="Trop de requêtes IA. Veuillez patienter avant de relancer une recherche."
+            )
+
+        # Track job start
+        metrics.job_started(company_id)
+
+        # LEAD-AI-06-03: Apply company default params
         company_defaults = get_company_target_params(company_id)
         if not request.location and company_defaults.get("default_location"):
             request.location = company_defaults["default_location"]
-            print(f"Applied default location: {request.location}")
+            print(f"[CONFIG] Applied default location: {request.location}")
         if not request.industry and company_defaults.get("default_industry"):
             request.industry = company_defaults["default_industry"]
-            print(f"Applied default industry: {request.industry}")
+            print(f"[CONFIG] Applied default industry: {request.industry}")
         if not request.target_persona and company_defaults.get("default_persona"):
             request.target_persona = company_defaults["default_persona"]
-            print(f"Applied default persona: {request.target_persona}")
+            print(f"[CONFIG] Applied default persona: {request.target_persona}")
 
         import uuid
         job_id = str(uuid.uuid4())
@@ -253,40 +269,47 @@ async def create_lead_research_job(
 
         # Step 1: Build smart search queries
         queries = _build_search_queries(request)
-        print(f"Search queries: {queries}")
+        print(f"[PIPELINE] Step 1 — Search queries: {queries}")
 
-        # Step 2: Search the web with SerpAPI
+        # Step 2: Search the web with SerpAPI (with rate limiting)
         from app.services.serpapi_service import search_web
         all_results = []
         for query in queries:
+            if not rate_limiter.check_serpapi(company_id):
+                print(f"[RATE_LIMIT] SerpAPI rate limit reached for {company_id[:8]}...")
+                break
             results = await search_web(
                 query=query,
                 location=request.location or "",
                 num_results=5
             )
             all_results.extend(results)
-            print(f"SerpAPI results for '{query}': {len(results)} results")
+            print(f"[PIPELINE] Step 2 — SerpAPI '{query}': {len(results)} results")
 
         jobs_store[job_id]["progress"] = 30
         jobs_store[job_id]["message"] = f"Analyse de {len(all_results)} sources web..."
         jobs_store[job_id]["sources_analyzed"] = len(all_results)
 
-        # Step 2.5: Enrich top results with Firecrawl
+        # Step 2.5: Enrich top results with Firecrawl (with rate limiting)
         from app.services.firecrawl_service import crawl_page
         enriched_results = []
         crawl_limit = 3 if request.search_depth == "standard" else 5 if request.search_depth == "deep" else 1
 
         for r in all_results[:crawl_limit]:
+            if not rate_limiter.check_firecrawl(company_id):
+                print(f"[RATE_LIMIT] Firecrawl rate limit reached for {company_id[:8]}...")
+                enriched_results.append({**r, "full_content": ""})
+                continue
             try:
-                print(f"Firecrawl crawling: {r['link'][:60]}...")
+                print(f"[PIPELINE] Step 2.5 — Firecrawl: {r['link'][:60]}...")
                 content = await crawl_page(r['link'])
                 enriched_results.append({
                     **r,
                     "full_content": content[:1500] if content else ""
                 })
-                print(f"Firecrawl success: {len(content)} chars extracted")
+                print(f"[PIPELINE] Firecrawl success: {len(content)} chars")
             except Exception as e:
-                print(f"Firecrawl failed for {r['link']}: {e}")
+                print(f"[PIPELINE] Firecrawl failed: {e}")
                 enriched_results.append({**r, "full_content": ""})
 
         for r in all_results[crawl_limit:]:
@@ -302,7 +325,7 @@ async def create_lead_research_job(
             for r in enriched_results
         ]) if enriched_results else f"No web results found for: {request.keywords} in {request.location}"
 
-        print(f"Raw results sent to AI ({len(raw_results)} chars):\n{raw_results[:300]}...")
+        print(f"[PIPELINE] Step 3 — Raw results: {len(raw_results)} chars")
 
         # Step 4: AI extracts and scores leads
         jobs_store[job_id]["progress"] = 70
@@ -316,7 +339,7 @@ async def create_lead_research_job(
         )
 
         ai_response = await call_ai(prompt, SYSTEM_PROMPT)
-        print(f"AI response: {ai_response[:300]}...")
+        print(f"[PIPELINE] Step 4 — AI response: {len(ai_response)} chars")
 
         # Step 5: Parse AI response
         try:
@@ -329,7 +352,7 @@ async def create_lead_research_job(
             if not isinstance(leads, list):
                 leads = _generate_mock_leads(request)
         except Exception as e:
-            print(f"JSON parse error: {e}")
+            print(f"[PIPELINE] JSON parse error: {e}")
             leads = _generate_mock_leads(request)
 
         # Step 6: Limit and enrich leads
@@ -341,9 +364,13 @@ async def create_lead_research_job(
             lead["keyword_match"] = request.keywords
 
         sources_analyzed = len(all_results)
+        duration = round(time.time() - job_start_time, 2)
 
         save_search_job(company_id, request, len(leads), sources_analyzed)
         update_quota(company_id, searches=1, leads=len(leads), api_calls=sources_analyzed)
+        metrics.job_completed(company_id, duration)
+
+        print(f"[PIPELINE] Completed in {duration}s — {len(leads)} leads found")
 
         jobs_store[job_id].update({
             "status": "completed",
@@ -351,7 +378,8 @@ async def create_lead_research_job(
             "message": f"{len(leads)} leads trouvés et qualifiés!",
             "leads": leads,
             "total_found": len(leads),
-            "sources_analyzed": sources_analyzed
+            "sources_analyzed": sources_analyzed,
+            "duration_seconds": duration
         })
 
         return {
@@ -361,14 +389,35 @@ async def create_lead_research_job(
             "data": leads,
             "total": len(leads),
             "sources_analyzed": sources_analyzed,
+            "duration_seconds": duration,
             "message": f"{len(leads)} leads trouvés!"
         }
 
     except HTTPException:
+        duration = round(time.time() - job_start_time, 2)
+        metrics.job_failed(company_id, duration, "HTTP Exception")
         raise
     except Exception as e:
-        print(f"Job error: {e}")
+        duration = round(time.time() - job_start_time, 2)
+        metrics.job_failed(company_id, duration, str(e))
+        print(f"[ERROR] Job failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─── Metrics Endpoint ─────────────────────────────────────────────────────────
+
+@router.get("/metrics")
+async def get_metrics(company_id: str = Query(...)):
+    """Get job metrics for a company."""
+    job_metrics = metrics.get_metrics(company_id)
+    rate_usage = rate_limiter.get_usage(company_id)
+    return {
+        "success": True,
+        "data": {
+            "jobs": job_metrics,
+            "rate_limits": rate_usage
+        }
+    }
 
 
 # ─── Other Job Endpoints ───────────────────────────────────────────────────────
@@ -386,7 +435,8 @@ async def get_job_status(job_id: str, company_id: str = Query(...)):
         "message": job["message"],
         "leads": job.get("leads", []),
         "total_found": job.get("total_found", 0),
-        "sources_analyzed": job.get("sources_analyzed", 0)
+        "sources_analyzed": job.get("sources_analyzed", 0),
+        "duration_seconds": job.get("duration_seconds", 0)
     }
 
 
@@ -445,11 +495,10 @@ async def get_quotas(company_id: str = Query(...)):
     return {"success": True, "data": quota}
 
 
-# ─── LEAD-AI-06-02: Access Rules Endpoints ────────────────────────────────────
+# ─── Access Check ─────────────────────────────────────────────────────────────
 
 @router.get("/access")
 async def check_access(company_id: str = Query(...), user_id: str = Query(...)):
-    """Check if user has access to AI module."""
     has_access = check_ai_access(company_id, user_id)
     return {
         "success": True,
@@ -458,11 +507,10 @@ async def check_access(company_id: str = Query(...), user_id: str = Query(...)):
     }
 
 
-# ─── LEAD-AI-06-03: Company Target Params Endpoints ───────────────────────────
+# ─── Target Params ────────────────────────────────────────────────────────────
 
 @router.get("/target-params")
 async def get_target_params(company_id: str = Query(...)):
-    """Get default target params for a company."""
     params = get_company_target_params(company_id)
     return {"success": True, "data": params}
 
@@ -472,7 +520,6 @@ async def save_target_params(
     company_id: str = Query(...),
     params: CompanyTargetParams = None
 ):
-    """Save default target params for a company."""
     save_company_target_params(company_id, params.dict())
     return {"success": True, "message": "Paramètres de cible sauvegardés!"}
 
@@ -488,7 +535,7 @@ async def get_search_history(company_id: str = Query(...)):
             ).order("created_at", desc=True).execute()
             return {"success": True, "data": res.data or []}
     except Exception as e:
-        print(f"DB history error: {e}")
+        print(f"[DB] History error: {e}")
     return {"success": True, "data": []}
 
 
@@ -503,7 +550,7 @@ async def get_templates(company_id: str = Query(...)):
             ).order("created_at", desc=True).execute()
             return {"success": True, "data": res.data or []}
     except Exception as e:
-        print(f"DB templates error: {e}")
+        print(f"[DB] Templates error: {e}")
     return {"success": True, "data": []}
 
 
@@ -515,7 +562,7 @@ async def save_template(company_id: str = Query(...), template: dict = None):
             result = supabase.schema("core").table("ai_templates").insert(template).execute()
             return {"success": True, "data": result.data}
     except Exception as e:
-        print(f"DB save template error: {e}")
+        print(f"[DB] Save template error: {e}")
     return {"success": False}
 
 
@@ -528,7 +575,7 @@ async def delete_template(template_id: str, company_id: str = Query(...)):
             ).eq("company_id", company_id).execute()
             return {"success": True}
     except Exception as e:
-        print(f"DB delete template error: {e}")
+        print(f"[DB] Delete template error: {e}")
     return {"success": False}
 
 
@@ -543,7 +590,7 @@ async def get_dynamic_segments(company_id: str = Query(...)):
             ).order("created_at", desc=True).execute()
             return {"success": True, "data": res.data or []}
     except Exception as e:
-        print(f"DB segments error: {e}")
+        print(f"[DB] Segments error: {e}")
     return {"success": True, "data": []}
 
 
@@ -555,7 +602,7 @@ async def save_dynamic_segment(company_id: str = Query(...), segment: dict = Non
             result = supabase.schema("core").table("ai_dynamic_segments").insert(segment).execute()
             return {"success": True, "data": result.data}
     except Exception as e:
-        print(f"DB save segment error: {e}")
+        print(f"[DB] Save segment error: {e}")
     return {"success": False}
 
 
@@ -568,7 +615,7 @@ async def update_dynamic_segment(segment_id: str, company_id: str = Query(...), 
             ).eq("company_id", company_id).execute()
             return {"success": True}
     except Exception as e:
-        print(f"DB update segment error: {e}")
+        print(f"[DB] Update segment error: {e}")
     return {"success": False}
 
 
@@ -581,7 +628,7 @@ async def delete_dynamic_segment(segment_id: str, company_id: str = Query(...)):
             ).eq("company_id", company_id).execute()
             return {"success": True}
     except Exception as e:
-        print(f"DB delete segment error: {e}")
+        print(f"[DB] Delete segment error: {e}")
     return {"success": False}
 
 

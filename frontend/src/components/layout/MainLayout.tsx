@@ -56,7 +56,7 @@ export function MainLayout({
       });
 
     // Fetch companies for the user
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/me`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/`, {
       method: 'GET',
       credentials: 'include',
     })

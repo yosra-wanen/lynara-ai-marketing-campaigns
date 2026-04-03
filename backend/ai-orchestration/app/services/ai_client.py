@@ -33,6 +33,7 @@ async def call_ai(prompt: str, system: str = "", max_tokens: int = 2000) -> str:
                 }
             )
             data = response.json()
+            print(f"Full OpenRouter response: {data}")
             return data["choices"][0]["message"]["content"]
     except Exception as e:
         print(f"AI call failed: {e}")

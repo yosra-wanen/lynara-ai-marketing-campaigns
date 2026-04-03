@@ -131,22 +131,22 @@ export default function EnrichmentPage() {
         <div>
           <div className="mb-3">
             <input type="text" placeholder="Rechercher un lead..."
-              className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+              className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
               value={searchInput} onChange={(e) => setSearchInput(e.target.value)} disabled={loading} />
           </div>
           <p className="text-xs text-gray-400 mb-2">{loading ? 'Chargement...' : `${filteredLeads.length} lead(s)`}</p>
           <div className="space-y-2 max-h-[500px] overflow-y-auto">
             {loading ? (
               <div className="py-12 text-center text-gray-500">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E1306C] mx-auto"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7C4DFF] mx-auto"></div>
                 <p className="mt-2">Chargement...</p>
               </div>
             ) : paginatedLeads.map(lead => (
               <div key={lead.lead_id} onClick={() => selectLead(lead)}
                 className={`p-4 rounded-lg border cursor-pointer transition-all ${
                   selectedLead?.lead_id === lead.lead_id
-                    ? 'border-[#E1306C] bg-[#E1306C]/5'
-                    : 'border-gray-200 bg-white hover:border-[#E1306C]/50'
+                    ? 'border-[#7C4DFF] bg-[#7C4DFF]/5'
+                    : 'border-gray-200 bg-white hover:border-[#7C4DFF]/50'
                 }`}>
                 <div className="flex justify-between items-start">
                   <div>
@@ -203,14 +203,14 @@ export default function EnrichmentPage() {
                   ].map(item => (
                     <div key={item.field}>
                       <label className="block text-sm font-medium text-gray-700 mb-1">{item.label}</label>
-                      <input type="text" className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                      <input type="text" className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                         value={(formData as any)[item.field]} onChange={(e) => update(item.field, e.target.value)}
                         placeholder={item.placeholder} />
                     </div>
                   ))}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Taille entreprise</label>
-                    <select className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                    <select className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                       value={formData.company_size} onChange={(e) => update('company_size', e.target.value)}>
                       <option value="">Non défini</option>
                       <option value="1-10">1-10 employés</option>
@@ -222,14 +222,14 @@ export default function EnrichmentPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Revenu annuel (€)</label>
-                    <input type="number" className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                    <input type="number" className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                       value={formData.annual_revenue} onChange={(e) => update('annual_revenue', e.target.value)}
                       placeholder="Ex: 500000" />
                   </div>
                 </div>
                 <div className="flex gap-3 pt-2">
                   <button type="submit" disabled={enriching}
-                    className="px-6 py-2 bg-[#E1306C] text-white rounded-lg hover:bg-[#FD1D1D] disabled:opacity-50">
+                    className="px-6 py-2 bg-[#7C4DFF] text-white rounded-lg hover:bg-[#FD1D1D] disabled:opacity-50">
                     {enriching ? 'Enrichissement...' : '✨ Enrichir le lead'}
                   </button>
                   <button type="button" onClick={() => setSelectedLead(null)}

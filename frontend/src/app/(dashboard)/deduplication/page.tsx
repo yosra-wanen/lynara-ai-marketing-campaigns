@@ -141,7 +141,7 @@ export default function DeduplicationPage() {
             ⚙️ Règles
           </button>
           <button onClick={fetchDuplicates}
-            className="px-4 py-2 bg-[#E1306C] text-white rounded-lg hover:bg-[#FD1D1D]">
+            className="px-4 py-2 bg-[#7C4DFF] text-white rounded-lg hover:bg-[#FD1D1D]">
             🔄 Relancer
           </button>
         </div>
@@ -149,7 +149,7 @@ export default function DeduplicationPage() {
 
       {loading ? (
         <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#E1306C] mx-auto"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#7C4DFF] mx-auto"></div>
           <p className="mt-3 text-gray-500">Analyse en cours...</p>
         </div>
       ) : (
@@ -167,7 +167,7 @@ export default function DeduplicationPage() {
                     <input type="checkbox"
                       checked={(rules as any)[item.field]}
                       onChange={(e) => setRules({ ...rules, [item.field]: e.target.checked })}
-                      className="w-4 h-4 accent-[#E1306C]" />
+                      className="w-4 h-4 accent-[#7C4DFF]" />
                     <div>
                       <p className="text-sm font-medium text-gray-800">{item.label}</p>
                       <p className="text-xs text-gray-500">{item.desc}</p>
@@ -177,7 +177,7 @@ export default function DeduplicationPage() {
               </div>
               <div className="flex gap-3 mt-4">
                 <button type="submit" disabled={savingRules}
-                  className="px-6 py-2 bg-[#E1306C] text-white rounded-lg hover:bg-[#FD1D1D] disabled:opacity-50">
+                  className="px-6 py-2 bg-[#7C4DFF] text-white rounded-lg hover:bg-[#FD1D1D] disabled:opacity-50">
                   {savingRules ? 'Sauvegarde...' : 'Sauvegarder'}
                 </button>
                 <button type="button" onClick={() => setShowRules(false)}
@@ -233,7 +233,7 @@ export default function DeduplicationPage() {
                           <button
                             onClick={() => openMerge(group.leads[0], lead)}
                             disabled={merging === group.leads[0].lead_id}
-                            className="px-3 py-1 bg-[#833AB4] text-white text-xs rounded-lg hover:bg-[#E1306C] disabled:opacity-50">
+                            className="px-3 py-1 bg-[#833AB4] text-white text-xs rounded-lg hover:bg-[#7C4DFF] disabled:opacity-50">
                             🔀 Fusionner
                           </button>
                           <button
@@ -298,7 +298,7 @@ export default function DeduplicationPage() {
 
             <div className="flex gap-3 mt-6">
               <button onClick={handleMerge} disabled={!!merging}
-                className="flex-1 py-2 bg-[#833AB4] text-white rounded-lg hover:bg-[#E1306C] disabled:opacity-50">
+                className="flex-1 py-2 bg-[#833AB4] text-white rounded-lg hover:bg-[#7C4DFF] disabled:opacity-50">
                 {merging ? 'Fusion en cours...' : '🔀 Confirmer la fusion'}
               </button>
               <button onClick={() => setMergingLeads(null)}

@@ -99,7 +99,7 @@ export default function LeadDetailPage() {
 
   if (loading) return (
     <div className="p-8 text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E1306C] mx-auto"></div>
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7C4DFF] mx-auto"></div>
       <p className="mt-4 text-gray-500">Chargement...</p>
     </div>
   )
@@ -112,7 +112,7 @@ export default function LeadDetailPage() {
         <h1 className="text-2xl font-bold text-[#111827]">{lead.customer_name || 'Lead sans nom'}</h1>
         <div className="flex gap-2">
           <a href={`/leads/${id}/modifier`}
-            className="px-4 py-2 bg-[#E1306C] text-white rounded-lg hover:bg-[#FD1D1D]">
+            className="px-4 py-2 bg-[#7C4DFF] text-white rounded-lg hover:bg-[#FD1D1D]">
             Modifier
           </a>
           <a href="/leads" className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
@@ -134,7 +134,7 @@ export default function LeadDetailPage() {
         </div>
         <div className="bg-white rounded-lg border p-4">
           <p className="text-xs text-gray-400 uppercase mb-1">Score</p>
-          <p className="font-medium text-2xl text-[#E1306C]">{lead.score || 0}<span className="text-sm text-gray-400">/100</span></p>
+          <p className="font-medium text-2xl text-[#7C4DFF]">{lead.score || 0}<span className="text-sm text-gray-400">/100</span></p>
         </div>
         <div className="bg-white rounded-lg border p-4">
           <p className="text-xs text-gray-400 uppercase mb-1">Valeur estimée</p>
@@ -185,7 +185,7 @@ export default function LeadDetailPage() {
             <div className="flex justify-between items-center border-b pb-2 mb-4">
               <h2 className="text-lg font-semibold text-[#111827]">Historique des activités</h2>
               <button onClick={() => setShowActivityForm(!showActivityForm)}
-                className="text-xs px-3 py-1 bg-[#E1306C] text-white rounded-lg hover:bg-[#FD1D1D]">
+                className="text-xs px-3 py-1 bg-[#7C4DFF] text-white rounded-lg hover:bg-[#FD1D1D]">
                 + Ajouter
               </button>
             </div>
@@ -193,7 +193,7 @@ export default function LeadDetailPage() {
             {showActivityForm && (
               <form onSubmit={handleAddActivity} className="mb-4 p-3 bg-gray-50 rounded-lg space-y-2">
                 <select
-                  className="w-full p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                  className="w-full p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                   value={newActivity.activity_type}
                   onChange={(e) => setNewActivity({ ...newActivity, activity_type: e.target.value })}>
                   <option value="call">📞 Appel téléphonique</option>
@@ -202,13 +202,13 @@ export default function LeadDetailPage() {
                   <option value="note_added">📝 Note</option>
                 </select>
                 <textarea rows={2} required
-                  className="w-full p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+                  className="w-full p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
                   placeholder="Description..."
                   value={newActivity.description}
                   onChange={(e) => setNewActivity({ ...newActivity, description: e.target.value })} />
                 <div className="flex gap-2">
                   <button type="submit" disabled={addingActivity}
-                    className="px-3 py-1 bg-[#E1306C] text-white text-sm rounded-lg disabled:opacity-50">
+                    className="px-3 py-1 bg-[#7C4DFF] text-white text-sm rounded-lg disabled:opacity-50">
                     {addingActivity ? 'Ajout...' : 'Ajouter'}
                   </button>
                   <button type="button" onClick={() => setShowActivityForm(false)}
@@ -225,7 +225,7 @@ export default function LeadDetailPage() {
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {activities.map((activity: any) => (
                   <div key={activity.activity_id} className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#E1306C]/10 flex items-center justify-center text-sm flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-[#7C4DFF]/10 flex items-center justify-center text-sm flex-shrink-0">
                       {getActivityIcon(activity.activity_type)}
                     </div>
                     <div className="flex-1">

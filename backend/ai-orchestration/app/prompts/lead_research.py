@@ -1,40 +1,41 @@
 """Prompts for lead research and scoring."""
 
-SYSTEM_PROMPT = """You are an expert B2B lead generation specialist. 
-Your job is to analyze search results and extract structured lead information.
-Always respond with valid JSON only, no explanations."""
+SYSTEM_PROMPT = """Tu es un expert en génération de leads B2B. 
+Ton travail est d'analyser des résultats de recherche et d'extraire des informations structurées sur les leads.
+Réponds toujours avec du JSON valide uniquement, sans explications.
+Toutes les justifications et notes doivent être rédigées en français."""
 
 def get_extraction_prompt(keywords: str, location: str, industry: str, raw_results: str) -> str:
     return f"""
-Based on these search results about "{keywords}" in "{location or 'any location'}" 
-for the "{industry or 'any'}" industry:
+Sur la base de ces résultats de recherche concernant "{keywords}" à "{location or 'toute localisation'}" 
+pour le secteur "{industry or 'tous secteurs'}":
 
 {raw_results}
 
-Extract and return a JSON array of leads. Each lead must have:
+Extrait et retourne un tableau JSON de leads. Chaque lead doit avoir:
 - customer_name (string)
-- customer_email (string or null)
-- customer_phone (string or null)  
+- customer_email (string ou null)
+- customer_phone (string ou null)  
 - company_name (string)
-- industry (string)
-- billing_city (string or null)
-- billing_country (string or null)
-- website (string or null)
-- score (integer 0-100)
-- rating (string: "hot" if score>=70, "warm" if score>=40, else "cold")
+- industry (string en français)
+- billing_city (string ou null)
+- billing_country (string ou null)
+- website (string ou null)
+- score (entier 0-100)
+- rating (string: "hot" si score>=70, "warm" si score>=40, sinon "cold")
 - source (string: "web_collection")
-- justification (string: brief reason for the score)
+- justification (string: brève raison du score, en français)
 
-Return ONLY the JSON array, no other text.
+Retourne UNIQUEMENT le tableau JSON, sans autre texte.
 """
 
 def get_scoring_prompt(lead: dict, keywords: str) -> str:
     return f"""
-Score this lead for the search "{keywords}":
+Évalue ce lead pour la recherche "{keywords}":
 {lead}
 
-Return JSON with:
+Retourne du JSON avec:
 - score (0-100)
 - rating ("hot"/"warm"/"cold")
-- justification (one sentence)
+- justification (une phrase en français)
 """

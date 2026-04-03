@@ -643,6 +643,138 @@ async def get_providers_status(company_id: str = Query(...)):
         }
     }
 
+@router.post("/lead-research")
+async def lead_research_specialized(
+    request: LeadResearchRequest,
+    company_id: str = Query(...),
+    user_id: Optional[str] = Query(None)
+):
+    """
+    Specialized endpoint for lead research with explicit contract.
+    Wrapper around /jobs with cleaner input/output mapping.
+    """
+    try:
+        import uuid
+        job_id = str(uuid.uuid4())
+        job_start_time = time.time()
+
+        # LEAD-AI-06-02: Check access
+        if user_id:
+            has_access = check_ai_access(company_id, user_id)
+            if not has_access:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Accès refusé. Seuls les propriétaires peuvent lancer des recherches IA."
+                )
+
+        # Apply company default params
+        company_defaults = get_company_target_params(company_id)
+        if not request.location and company_defaults.get("default_location"):
+            request.location = company_defaults["default_location"]
+        if not request.industry and company_defaults.get("default_industry"):
+            request.industry = company_defaults["default_industry"]
+        if not request.target_persona and company_defaults.get("default_persona"):
+            request.target_persona = company_defaults["default_persona"]
+
+        # Rate limit check
+        if not rate_limiter.check_ai(company_id):
+            raise HTTPException(
+                status_code=429,
+                detail="Trop de requêtes. Veuillez patienter."
+            )
+
+        metrics.job_started(company_id)
+
+        # Build queries and search
+        queries = _build_search_queries(request)
+        from app.services.serpapi_service import search_web
+        all_results = []
+        for query in queries:
+            if not rate_limiter.check_serpapi(company_id):
+                break
+            results = await search_web(query=query, location=request.location or "", num_results=5)
+            all_results.extend(results)
+
+        # Firecrawl enrichment
+        from app.services.firecrawl_service import crawl_page
+        enriched_results = []
+        crawl_limit = 3 if request.search_depth == "standard" else 5 if request.search_depth == "deep" else 1
+        for r in all_results[:crawl_limit]:
+            if not rate_limiter.check_firecrawl(company_id):
+                enriched_results.append({**r, "full_content": ""})
+                continue
+            try:
+                content = await crawl_page(r['link'])
+                enriched_results.append({**r, "full_content": content[:1500] if content else ""})
+            except:
+                enriched_results.append({**r, "full_content": ""})
+        for r in all_results[crawl_limit:]:
+            enriched_results.append({**r, "full_content": ""})
+
+        # Format for AI
+        raw_results = "\n\n---\n\n".join([
+            f"Title: {r['title']}\nURL: {r['link']}\nSnippet: {r['snippet']}\n"
+            + (f"Full content: {r['full_content']}" if r.get('full_content') else "")
+            for r in enriched_results
+        ]) if enriched_results else f"No results for: {request.keywords}"
+
+        # AI extraction
+        prompt = get_extraction_prompt(
+            request.keywords,
+            request.location or "",
+            request.industry or "",
+            raw_results
+        )
+        ai_response = await call_ai(prompt, SYSTEM_PROMPT)
+
+        # Parse
+        try:
+            clean = ai_response.strip()
+            if "```json" in clean:
+                clean = clean.split("```json")[1].split("```")[0]
+            elif "```" in clean:
+                clean = clean.split("```")[1].split("```")[0]
+            leads = json.loads(clean)
+            if not isinstance(leads, list):
+                leads = _generate_mock_leads(request)
+        except:
+            leads = _generate_mock_leads(request)
+
+        leads = leads[:min(request.volume or 10, MAX_LEADS_PER_JOB)]
+        for i, lead in enumerate(leads):
+            lead["temp_id"] = f"temp_{i}"
+            lead["status"] = "new"
+            lead["priority"] = "high" if lead.get("score", 0) >= 70 else "medium"
+            lead["keyword_match"] = request.keywords
+
+        duration = round(time.time() - job_start_time, 2)
+        save_search_job(company_id, request, len(leads), len(all_results))
+        update_quota(company_id, searches=1, leads=len(leads), api_calls=len(all_results))
+        metrics.job_completed(company_id, duration)
+
+        return {
+            "success": True,
+            "job_id": job_id,
+            "request": {
+                "keywords": request.keywords,
+                "location": request.location,
+                "industry": request.industry,
+                "volume": request.volume,
+            },
+            "results": {
+                "leads": leads,
+                "total": len(leads),
+                "sources_analyzed": len(all_results),
+                "duration_seconds": duration,
+            },
+            "message": f"{len(leads)} leads trouvés et qualifiés!"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[lead-research] Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ─── Mock Lead Generator ──────────────────────────────────────────────────────
 

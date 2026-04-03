@@ -159,7 +159,7 @@ export default function LeadsPage() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-[#111827]">Leads</h1>
-        <a href="/leads/nouveau" className="px-4 py-2 bg-[#E1306C] text-white rounded-lg hover:bg-[#FD1D1D] transition-colors">
+        <a href="/leads/nouveau" className="px-4 py-2 bg-[#7C4DFF] text-white rounded-lg hover:bg-[#FD1D1D] transition-colors">
           + Nouveau Lead
         </a>
       </div>
@@ -168,12 +168,12 @@ export default function LeadsPage() {
         <input
           type="text"
           placeholder="Rechercher..."
-          className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+          className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
         <select
-          className="w-48 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E1306C]"
+          className="w-48 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]"
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1) }}
         >
@@ -186,16 +186,16 @@ export default function LeadsPage() {
           <option value="converted">Converti</option>
           <option value="lost">Perdu</option>
         </select>
-        <button type="submit" className="px-4 py-2 bg-[#E1306C] text-white rounded-lg hover:bg-[#FD1D1D]">
+        <button type="submit" className="px-4 py-2 bg-[#7C4DFF] text-white rounded-lg hover:bg-[#FD1D1D]">
           Rechercher
         </button>
       </form>
 
       {selectedLeads.length > 0 && (
-        <div className="bg-[#E1306C]/10 border border-[#E1306C]/20 rounded-lg p-3 mb-4 flex items-center justify-between">
-          <span className="text-sm text-[#E1306C]">{selectedLeads.length} lead(s) sélectionné(s)</span>
+        <div className="bg-[#7C4DFF]/10 border border-[#7C4DFF]/20 rounded-lg p-3 mb-4 flex items-center justify-between">
+          <span className="text-sm text-[#7C4DFF]">{selectedLeads.length} lead(s) sélectionné(s)</span>
           <div className="flex gap-2">
-            <button onClick={handleBulkExport} className="px-3 py-1 bg-[#833AB4] text-white text-sm rounded-lg hover:bg-[#E1306C]">Exporter</button>
+            <button onClick={handleBulkExport} className="px-3 py-1 bg-[#833AB4] text-white text-sm rounded-lg hover:bg-[#7C4DFF]">Exporter</button>
             <button onClick={handleBulkDelete} className="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700">Supprimer</button>
           </div>
         </div>
@@ -209,7 +209,7 @@ export default function LeadsPage() {
             <tr>
               <th className="px-6 py-3 text-left">
                 <input type="checkbox" checked={selectAll} onChange={(e) => setSelectAll(e.target.checked)}
-                  className="rounded border-gray-300 accent-[#E1306C]" disabled={loading} />
+                  className="rounded border-gray-300 accent-[#7C4DFF]" disabled={loading} />
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nom</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
@@ -223,7 +223,7 @@ export default function LeadsPage() {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {loading ? (
-              <tr><td colSpan={9} className="px-6 py-12 text-center text-gray-500"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E1306C] mx-auto"></div><p className="mt-2">Chargement...</p></td></tr>
+              <tr><td colSpan={9} className="px-6 py-12 text-center text-gray-500"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7C4DFF] mx-auto"></div><p className="mt-2">Chargement...</p></td></tr>
             ) : leads.length === 0 ? (
               <tr><td colSpan={9} className="px-6 py-8 text-center text-gray-400">Aucun lead trouvé</td></tr>
             ) : leads.map(lead => (
@@ -231,7 +231,7 @@ export default function LeadsPage() {
                 <td className="px-6 py-4">
                   <input type="checkbox" checked={selectedLeads.includes(lead.lead_id)}
                     onChange={() => toggleLeadSelection(lead.lead_id)}
-                    className="rounded border-gray-300 accent-[#E1306C]" />
+                    className="rounded border-gray-300 accent-[#7C4DFF]" />
                 </td>
                 <td className="px-6 py-4 text-sm font-medium text-gray-900">{lead.customer_name || '-'}</td>
                 <td className="px-6 py-4 text-sm text-gray-500">{lead.customer_email || '-'}</td>
@@ -249,7 +249,7 @@ export default function LeadsPage() {
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">{lead.score || 0}</td>
                 <td className="px-6 py-4 text-sm flex gap-2">
-                  <a href={`/leads/${lead.lead_id}`} className="text-[#E1306C] hover:text-[#FD1D1D]">Voir</a>
+                  <a href={`/leads/${lead.lead_id}`} className="text-[#7C4DFF] hover:text-[#FD1D1D]">Voir</a>
                   <a href={`/leads/${lead.lead_id}/modifier`} className="text-blue-500 hover:text-blue-700">Modifier</a>
                   <button onClick={() => handleDelete(lead.lead_id)} className="text-red-400 hover:text-red-600">Supprimer</button>
                 </td>

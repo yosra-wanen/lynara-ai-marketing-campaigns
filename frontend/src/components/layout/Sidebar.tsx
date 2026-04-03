@@ -16,6 +16,8 @@ import {
   LogOut,
   CircleDollarSign,
   ShoppingBag,
+  Truck,
+  SlidersHorizontal,
   UserPlus,
   Layers,
   Copy,
@@ -64,7 +66,9 @@ const crmExploreItems: NavItem[] = [
 
 const catalogueMenuItems: NavItem[] = [
   { href: '/dashboard', labelKey: 'dashboard', icon: <LayoutDashboard size={20} /> },
-  { href: '/services', labelKey: 'services', icon: <ShoppingBag size={20} /> }, // Services as Products
+  { href: '/catalog', labelKey: 'services', icon: <ShoppingBag size={20} /> },
+  { href: '/catalog/suppliers', labelKey: 'suppliers', icon: <Truck size={20} /> },
+  { href: '/catalog/settings', labelKey: 'settings', icon: <SlidersHorizontal size={20} /> },
   { href: '/accounting', labelKey: 'accounting', icon: <CircleDollarSign size={20} /> },
 ];
 

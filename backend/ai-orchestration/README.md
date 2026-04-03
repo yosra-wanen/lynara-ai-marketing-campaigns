@@ -27,6 +27,7 @@ ai-orchestration/
 │   │   ├── ai_client.py         # Client OpenRouter/LLM
 │   │   ├── serpapi_service.py   # Recherche web SerpAPI
 │   │   ├── firecrawl_service.py # Extraction contenu pages
+│   │   ├── search_provider.py   # Interface commune SearchProvider + adaptateurs
 │   │   ├── rate_limiter.py      # Rate limiting par company
 │   │   └── metrics.py           # Métriques et observabilité
 │   └── main.py                  # Point d'entrée FastAPI
@@ -67,6 +68,7 @@ cp .env.example .env
 
 | Variable | Défaut | Description |
 |----------|--------|-------------|
+| EXA_API_KEY | - | Clé API Exa (recherche sémantique) |
 | SERPAPI_RATE_LIMIT | 10 | Max appels SerpAPI/minute/company |
 | FIRECRAWL_RATE_LIMIT | 5 | Max appels Firecrawl/minute/company |
 | AI_RATE_LIMIT | 20 | Max appels AI/minute/company |
@@ -78,10 +80,7 @@ cp .env.example .env
 
 ## Lancement
 ```bash
-# Installer les dépendances
 pip install -r requirements.txt
-
-# Lancer le service
 python run.py
 ```
 
@@ -101,13 +100,14 @@ Documentation Swagger : http://localhost:8000/docs
 | GET | /ai-orchestration/jobs/{id} | Statut d'un job |
 | POST | /ai-orchestration/jobs/{id}/import | Importer les leads dans le CRM |
 
-### Gouvernance
+### Gouvernance & Quotas
 
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
 | GET | /ai-orchestration/quotas | Quotas par entreprise |
 | GET | /ai-orchestration/metrics | Métriques et observabilité |
 | GET | /ai-orchestration/access | Vérifier l'accès utilisateur |
+| GET | /ai-orchestration/providers | Statut des providers de recherche |
 | GET | /ai-orchestration/target-params | Paramètres cible par défaut |
 | POST | /ai-orchestration/target-params | Sauvegarder paramètres cible |
 
@@ -122,15 +122,30 @@ Documentation Swagger : http://localhost:8000/docs
 
 ---
 
+## Architecture SearchProvider
+
+Le microservice utilise une interface commune `SearchProvider` avec des adaptateurs pour chaque provider :
+SearchProvider (interface abstraite)
+├── SerpAPIProvider    — Recherche web (disponible si SERPAPI_KEY configuré)
+├── ExaProvider        — Recherche sémantique (disponible si EXA_API_KEY configuré)
+└── FirecrawlProvider  — Extraction contenu pages (disponible si FIRECRAWL_KEY configuré)
+SearchOrchestrator
+└── Combine les providers avec fallback automatique (SerpAPI -> Exa -> vide)
+
+---
+
 ## Pipeline de traitement
 
 Réception de la requête (keywords, location, industry, volume)
+Vérification accès et rate limiting
+Application des paramètres de cible par défaut de l'entreprise
 Génération de requêtes de recherche variées (max 3)
-Recherche web via SerpAPI
+Recherche web via SearchOrchestrator (SerpAPI -> Exa avec fallback)
 Extraction contenu pages via Firecrawl (top 3 URLs)
 Analyse et scoring via Claude AI (pertinence, maturité, potentiel)
 Normalisation et classification (chaud/moyen/froid)
 Sauvegarde base de données et mise à jour quotas
+Mise à jour métriques
 Retour des leads qualifiés
 
 
@@ -138,17 +153,17 @@ Retour des leads qualifiés
 
 ## Sécurité et Gouvernance
 
-- Rate limiting par entreprise et par service (SerpAPI, Firecrawl, AI)
+- Rate limiting par entreprise et par service (SerpAPI, Firecrawl, Exa, AI)
 - Quotas par entreprise (searches, leads, API calls)
 - Contrôle d'accès par rôle (owner uniquement)
 - Clés API masquées dans les logs
 - Validation des inputs via Pydantic
+- Métriques temps réel (nombre de jobs, durée moyenne, taux d'erreur)
 
 ---
 
 ## Tests
 ```bash
-# Lancer tous les tests
 python -m pytest tests/ -v
 ```
 

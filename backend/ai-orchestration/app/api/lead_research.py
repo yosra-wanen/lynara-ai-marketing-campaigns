@@ -631,6 +631,18 @@ async def delete_dynamic_segment(segment_id: str, company_id: str = Query(...)):
         print(f"[DB] Delete segment error: {e}")
     return {"success": False}
 
+@router.get("/providers")
+async def get_providers_status(company_id: str = Query(...)):
+    """Get status of all search providers."""
+    from app.services.search_provider import search_orchestrator
+    return {
+        "success": True,
+        "data": {
+            "providers": search_orchestrator.get_status(),
+            "available": search_orchestrator.get_available_providers()
+        }
+    }
+
 
 # ─── Mock Lead Generator ──────────────────────────────────────────────────────
 

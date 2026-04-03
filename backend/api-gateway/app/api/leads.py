@@ -55,12 +55,23 @@ class LeadUpdate(BaseModel):
     linkedin_url: Optional[str] = None
     company_size: Optional[str] = None
 
+class LeadEnrich(BaseModel):
+    industry: Optional[str] = None
+    website: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    company_size: Optional[str] = None
+    annual_revenue: Optional[float] = None
+    billing_city: Optional[str] = None
+    billing_country: Optional[str] = None
+    customer_job_title: Optional[str] = None
+    twitter_url: Optional[str] = None
+    facebook_url: Optional[str] = None
+
 class SegmentCreate(BaseModel):
     name: str
     description: Optional[str] = ""
 
 class CollectRequest(BaseModel):
-    """Request model for AI lead collection — connects to ai-orchestration."""
     keywords: str
     location: Optional[str] = None
     industry: Optional[str] = None
@@ -70,27 +81,17 @@ class CollectRequest(BaseModel):
     sources: Optional[List[str]] = ["web", "linkedin", "annuaires"]
     quality_vs_quantity: Optional[str] = "quality"
     search_depth: Optional[str] = "standard"
-    auto_import: Optional[bool] = False  # if True, auto-import all leads to CRM
+    auto_import: Optional[bool] = False
 
 class CollectImportRequest(BaseModel):
-    """Request model for importing AI leads into CRM."""
     leads: List[dict]
 
 
-# ─── SECTION 7: POST /leads/collect ───────────────────────────────────────────
+# ─── POST /leads/collect ───────────────────────────────────────────────────────
 
 @router.post("/collect")
-async def collect_leads(
-    request: CollectRequest,
-    company_id: str = Query(...)
-):
-    """
-    Launch AI lead collection via ai-orchestration microservice.
-    Connects POST /leads/collect → ai-orchestration → structured leads.
-    If auto_import=True, automatically imports all leads into CRM.
-    """
+async def collect_leads(request: CollectRequest, company_id: str = Query(...)):
     try:
-        # Step 1: Call ai-orchestration to collect leads
         async with httpx.AsyncClient(timeout=60) as client:
             res = await client.post(
                 f"{AI_ORCHESTRATION_URL}/ai-orchestration/jobs",
@@ -108,19 +109,13 @@ async def collect_leads(
                 }
             )
             if not res.is_success:
-                raise HTTPException(
-                    status_code=res.status_code,
-                    detail=f"AI orchestration error: {res.text}"
-                )
+                raise HTTPException(status_code=res.status_code, detail=f"AI orchestration error: {res.text}")
             ai_response = res.json()
 
         leads = ai_response.get("data", [])
         total_found = ai_response.get("total", 0)
         sources_analyzed = ai_response.get("sources_analyzed", 0)
 
-        print(f"AI collected {total_found} leads from {sources_analyzed} sources")
-
-        # Step 2: Map AI leads to CRM DTO format
         def map_lead(lead: dict) -> dict:
             return {
                 "customer_name": lead.get("customer_name"),
@@ -140,7 +135,6 @@ async def collect_leads(
                 "crm_notes": lead.get("justification", ""),
             }
 
-        # Step 3: Auto-import if requested
         imported = 0
         errors = []
 
@@ -148,7 +142,7 @@ async def collect_leads(
             for lead in leads:
                 try:
                     mapped = map_lead(lead)
-                    result = supabase.rpc("create_lead", {
+                    supabase.rpc("create_lead", {
                         "p_company_id": company_id,
                         "p_customer_name": mapped.get("customer_name"),
                         "p_customer_email": mapped.get("customer_email"),
@@ -176,7 +170,6 @@ async def collect_leads(
                     imported += 1
                 except Exception as e:
                     errors.append(str(e))
-                    print(f"Import error: {e}")
 
         return {
             "success": True,
@@ -191,25 +184,16 @@ async def collect_leads(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Collect error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/collect/import")
-async def import_collected_leads(
-    request: CollectImportRequest,
-    company_id: str = Query(...)
-):
-    """
-    Import a list of AI-collected leads into CRM.
-    Called after user validates leads on the frontend.
-    """
+async def import_collected_leads(request: CollectImportRequest, company_id: str = Query(...)):
     imported = 0
     errors = []
-
     for lead in request.leads:
         try:
-            result = supabase.rpc("create_lead", {
+            supabase.rpc("create_lead", {
                 "p_company_id": company_id,
                 "p_customer_name": lead.get("customer_name"),
                 "p_customer_email": lead.get("customer_email"),
@@ -237,7 +221,6 @@ async def import_collected_leads(
             imported += 1
         except Exception as e:
             errors.append(f"Failed to import {lead.get('customer_name', 'unknown')}: {str(e)}")
-            print(f"Import error: {e}")
 
     return {
         "success": True,
@@ -246,6 +229,34 @@ async def import_collected_leads(
         "errors": errors,
         "message": f"{imported}/{len(request.leads)} leads importés dans le CRM!"
     }
+
+
+# ─── BE-05: POST /leads/{lead_id}/enrich ──────────────────────────────────────
+
+@router.post("/{lead_id}/enrich")
+async def enrich_lead(lead_id: str, enrich: LeadEnrich, company_id: str = Query(...)):
+    """
+    Enrich a lead with additional information.
+    Calls the enrich_lead RPC function in Supabase.
+    """
+    try:
+        result = supabase.rpc("enrich_lead", {
+            "p_lead_id": lead_id,
+            "p_company_id": company_id,
+            "p_industry": enrich.industry,
+            "p_website": enrich.website,
+            "p_linkedin_url": enrich.linkedin_url,
+            "p_company_size": enrich.company_size,
+            "p_annual_revenue": enrich.annual_revenue,
+            "p_billing_city": enrich.billing_city,
+            "p_billing_country": enrich.billing_country,
+            "p_customer_job_title": enrich.customer_job_title,
+            "p_twitter_url": enrich.twitter_url,
+            "p_facebook_url": enrich.facebook_url,
+        }).execute()
+        return {"success": True, "data": result.data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ─── Existing Endpoints ────────────────────────────────────────────────────────
@@ -265,27 +276,21 @@ async def create_segment(segment: SegmentCreate, company_id: str = Query(...)):
 @router.get("/segments/list")
 async def list_segments(company_id: str = Query(...)):
     try:
-        result = supabase.rpc("list_segments", {
-            "p_company_id": company_id
-        }).execute()
+        result = supabase.rpc("list_segments", {"p_company_id": company_id}).execute()
         data = result.data
         if data is None:
-            segments = []
-            total = 0
+            segments, total = [], 0
         elif isinstance(data, list):
             if len(data) == 0:
-                segments = []
-                total = 0
+                segments, total = [], 0
             elif isinstance(data[0], dict) and "segments" in data[0]:
                 row = data[0]
                 segments = row.get("segments", []) if isinstance(row.get("segments"), list) else []
                 total = row.get("total", len(segments)) if isinstance(row.get("total"), (int, float)) else len(segments)
             else:
-                segments = data
-                total = len(data)
+                segments, total = data, len(data)
         else:
-            segments = []
-            total = 0
+            segments, total = [], 0
         return {"success": True, "data": segments, "total": total}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -304,9 +309,7 @@ async def delete_segment(segment_id: str, company_id: str = Query(...)):
 @router.get("/deduplicate")
 async def detect_duplicates(company_id: str = Query(...)):
     try:
-        result = supabase.rpc("detect_duplicates", {
-            "p_company_id": company_id
-        }).execute()
+        result = supabase.rpc("detect_duplicates", {"p_company_id": company_id}).execute()
         return {"success": True, "data": result.data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -374,37 +377,24 @@ async def list_leads(
             "p_limit": limit,
             "p_offset": (page - 1) * limit
         }).execute()
-
         data = result.data
-
         if data is None:
-            leads = []
-            total = 0
+            leads, total = [], 0
         elif isinstance(data, list):
             if len(data) == 0:
-                leads = []
-                total = 0
+                leads, total = [], 0
             elif isinstance(data[0], dict) and ("leads" in data[0] or "total" in data[0]):
                 row = data[0]
                 leads = row.get("leads", []) if isinstance(row.get("leads"), list) else []
                 total = row.get("total", len(leads)) if isinstance(row.get("total"), (int, float)) else len(leads)
             else:
-                leads = data
-                total = len(data)
+                leads, total = data, len(data)
         elif isinstance(data, dict):
             leads = data.get("leads", [])
             total = data.get("total", len(leads) if isinstance(leads, list) else 0)
         else:
-            leads = []
-            total = 0
-
-        return {
-            "success": True,
-            "data": leads,
-            "total": total,
-            "page": page,
-            "limit": limit
-        }
+            leads, total = [], 0
+        return {"success": True, "data": leads, "total": total, "page": page, "limit": limit}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -414,7 +404,6 @@ async def import_csv_placeholder():
 
 @router.post("/import/csv")
 async def import_leads_csv(company_id: str = Query(...)):
-    """CSV import placeholder."""
     return {"success": True, "imported": 0, "message": "CSV import not yet implemented"}
 
 @router.get("/{lead_id}")

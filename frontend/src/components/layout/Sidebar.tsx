@@ -67,6 +67,7 @@ const crmAnalyticsItems: NavItem[] = [
   { href: '/dashboard/campaigns', labelKey: 'analyticsCampaigns', icon: <BarChart3 size={20} /> },
   { href: '/dashboard/social', labelKey: 'analyticsSocial', icon: <MessageSquare size={20} /> },
   { href: '/dashboard/leads-intelligence', labelKey: 'analyticsLeads', icon: <Brain size={20} /> },
+  { href: '/dashboard/ops', labelKey: 'analyticsOps', icon: <Settings size={20} /> },
 ];
 
 const crmExploreItems: NavItem[] = [

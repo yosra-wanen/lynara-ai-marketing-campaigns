@@ -390,3 +390,75 @@ async def get_competitive_benchmark(company_id: str = Query(...)):
             ]
         }
     }
+
+@router.get("/roi-report")
+async def get_roi_report(company_id: str = Query(...)):
+    try:
+        leads_res = supabase.schema("crm").table("leads").select(
+            "lead_id, status, estimated_value, conversion_value, acquisition_channel, source, created_at"
+        ).eq("company_id", company_id).execute()
+
+        leads = leads_res.data or []
+        converted = [l for l in leads if l.get("status") == "converted"]
+
+        total_revenue = sum(
+            float(l.get("conversion_value") or l.get("estimated_value") or 0)
+            for l in converted
+        )
+
+        # Estimated marketing cost (CPL * total leads)
+        estimated_cost_per_lead = 500
+        total_cost = len(leads) * estimated_cost_per_lead
+        roi = round((total_revenue - total_cost) / total_cost * 100, 1) if total_cost > 0 else 0
+        cac = round(total_cost / len(converted), 0) if converted else 0
+        ltv = round(total_revenue / len(converted), 0) if converted else 0
+        ltv_cac_ratio = round(ltv / cac, 1) if cac > 0 else 0
+
+        # ROI by channel
+        channel_roi = {}
+        for l in leads:
+            ch = l.get("acquisition_channel") or l.get("source") or "unknown"
+            if ch == "unknown":
+                continue
+            if ch not in channel_roi:
+                channel_roi[ch] = {"leads": 0, "converted": 0, "revenue": 0, "cost": 0}
+            channel_roi[ch]["leads"] += 1
+            channel_roi[ch]["cost"] += estimated_cost_per_lead
+            if l.get("status") == "converted":
+                channel_roi[ch]["converted"] += 1
+                channel_roi[ch]["revenue"] += float(
+                    l.get("conversion_value") or l.get("estimated_value") or 0
+                )
+
+        channel_roi_list = []
+        for ch, data in channel_roi.items():
+            ch_roi = round((data["revenue"] - data["cost"]) / data["cost"] * 100, 1) if data["cost"] > 0 else 0
+            channel_roi_list.append({
+                "channel": ch.capitalize(),
+                "leads": data["leads"],
+                "converted": data["converted"],
+                "revenue": round(data["revenue"], 0),
+                "cost": data["cost"],
+                "roi": ch_roi,
+                "cac": round(data["cost"] / data["converted"], 0) if data["converted"] > 0 else 0,
+            })
+        channel_roi_list.sort(key=lambda x: x["roi"], reverse=True)
+
+        return {
+            "success": True,
+            "data": {
+                "summary": {
+                    "total_leads": len(leads),
+                    "total_converted": len(converted),
+                    "total_revenue": round(total_revenue, 0),
+                    "total_cost": total_cost,
+                    "roi_percent": roi,
+                    "cac": cac,
+                    "ltv": ltv,
+                    "ltv_cac_ratio": ltv_cac_ratio,
+                },
+                "by_channel": channel_roi_list,
+            }
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}

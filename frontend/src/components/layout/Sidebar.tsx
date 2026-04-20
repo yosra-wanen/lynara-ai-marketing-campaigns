@@ -24,6 +24,9 @@ import {
   Sparkles,
   Globe,
   ShieldCheck,
+  TrendingUp,
+  MessageSquare,
+  Brain,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/providers/I18nProvider';
@@ -49,6 +52,7 @@ const crmMenuItems: NavItem[] = [
   { href: '/forms', labelKey: 'forms', icon: <ClipboardList size={20} /> },
   { href: '/scheduling', labelKey: 'scheduling', icon: <Clock size={20} /> },
 ];
+
 const crmLeadsItems: NavItem[] = [
   { href: '/leads', labelKey: 'leads', icon: <UserPlus size={20} /> },
   { href: '/collecte', labelKey: 'collecte', icon: <Globe size={20} /> },
@@ -56,6 +60,13 @@ const crmLeadsItems: NavItem[] = [
   { href: '/deduplication', labelKey: 'deduplication', icon: <Copy size={20} /> },
   { href: '/enrichment', labelKey: 'enrichment', icon: <Sparkles size={20} /> },
   { href: '/quotas', labelKey: 'quotas', icon: <ShieldCheck size={20} /> },
+];
+
+const crmAnalyticsItems: NavItem[] = [
+  { href: '/dashboard/executive', labelKey: 'analyticsExecutive', icon: <TrendingUp size={20} /> },
+  { href: '/dashboard/campaigns', labelKey: 'analyticsCampaigns', icon: <BarChart3 size={20} /> },
+  { href: '/dashboard/social', labelKey: 'analyticsSocial', icon: <MessageSquare size={20} /> },
+  { href: '/dashboard/leads-intelligence', labelKey: 'analyticsLeads', icon: <Brain size={20} /> },
 ];
 
 const crmExploreItems: NavItem[] = [
@@ -106,7 +117,7 @@ export function Sidebar({
         className
       )}
     >
-      {/* Logo - violet #a079ff comme capture */}
+      {/* Logo */}
       <div className="flex items-center gap-3 border-b border-gray-100 dark:border-[#262626] p-6">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-logo-accent text-white font-bold shadow-lg shadow-[#A079FF]/25 dark:shadow-[#A079FF]/15 transition-all duration-300">
           L
@@ -126,11 +137,14 @@ export function Sidebar({
         <SidebarSection titleKey="menu" items={menuItems} pathname={pathname} activeSection={activeSection} />
         <SidebarSection titleKey="explore" items={exploreItems} pathname={pathname} activeSection={activeSection} />
         {activeSection === 'crm' && (
-      <SidebarSection titleKey="leads" items={crmLeadsItems} pathname={pathname} activeSection={activeSection} />
-)}
+          <SidebarSection titleKey="leads" items={crmLeadsItems} pathname={pathname} activeSection={activeSection} />
+        )}
+        {activeSection === 'crm' && (
+          <SidebarSection titleKey="analytics" items={crmAnalyticsItems} pathname={pathname} activeSection={activeSection} />
+        )}
       </nav>
 
-      {/* Footer - Logout only; profile is in header avatar menu */}
+      {/* Footer */}
       <div className="border-t border-gray-100 dark:border-[#262626] p-4">
         <Link
           href="/logout"

@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import health, leads, core
+from app.api import health, leads, core, analytics
 
 app = FastAPI(
     title="Lynara Campaign API Gateway",
@@ -21,6 +21,7 @@ app.add_middleware(
 
 app.include_router(health.router, prefix="/health", tags=["health"])
 app.include_router(leads.router, prefix="/leads", tags=["leads"])
+app.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 # Proxy to core-service for /auth/*, /company/*, /profile/*, etc.
 app.include_router(core.router, prefix="", tags=["core-proxy"])
 

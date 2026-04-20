@@ -20,5 +20,10 @@
   "collecte": "Web AI Collection",
   "segments": "Segments",
   "deduplication": "Deduplication",
-  "quotas": "Quotas & Governance"
+  "quotas": "Quotas & Governance",
+  "analytics": "ANALYTICS",
+  "analyticsExecutive": "Executive Dashboard",
+  "analyticsCampaigns": "Campaigns",
+  "analyticsSocial": "Social & Business",
+  "analyticsLeads": "Lead Intelligence"
 }

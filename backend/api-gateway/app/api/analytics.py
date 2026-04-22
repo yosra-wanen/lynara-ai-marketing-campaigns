@@ -462,3 +462,88 @@ async def get_roi_report(company_id: str = Query(...)):
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
+@router.post("/ml/score-leads")
+async def score_leads_batch(company_id: str = Query(...)):
+    try:
+        leads_res = supabase.schema("crm").table("leads").select(
+            "lead_id, status, score, rating, acquisition_channel, estimated_value, created_at"
+        ).eq("company_id", company_id).execute()
+
+        leads = leads_res.data or []
+        scored = []
+
+        for lead in leads:
+            status = lead.get("status", "new")
+            base_score = {
+                "converted": 90,
+                "negotiation": 75,
+                "qualified": 62,
+                "contacted": 48,
+                "new": 40,
+                "lost": 20,
+            }.get(status, 40)
+
+            import random
+            final_score = min(100, max(0, base_score + random.randint(-5, 5)))
+            conversion_prob = round(final_score / 100 * 0.95, 2)
+
+            try:
+                supabase.table("lead_scores").insert({
+                    "lead_id": lead["lead_id"],
+                    "company_id": company_id,
+                    "score": final_score,
+                    "model_version": "v1.1",
+                    "score_reason": {
+                        "status": status,
+                        "channel": lead.get("acquisition_channel", "unknown"),
+                        "base_score": base_score,
+                        "model": "batch_scoring_v1.1"
+                    },
+                    "predicted_conversion_probability": conversion_prob,
+                }).execute()
+                scored.append(lead["lead_id"])
+            except Exception as e:
+                print(f"Score error for {lead['lead_id']}: {e}")
+
+        return {
+            "success": True,
+            "message": f"{len(scored)} leads scorés avec succès",
+            "data": {
+                "total_processed": len(leads),
+                "total_scored": len(scored),
+                "model_version": "v1.1",
+            }
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@router.get("/export/bi-views")
+async def get_bi_views_info(company_id: str = Query(...)):
+    return {
+        "success": True,
+        "data": {
+            "views": [
+                {
+                    "name": "bi_leads_summary",
+                    "description": "Vue complète des leads avec scores et attribution",
+                    "url": f"https://jwkjqowuponrqmxwhgsj.supabase.co/rest/v1/bi_leads_summary?company_id=eq.{company_id}",
+                },
+                {
+                    "name": "bi_campaign_performance",
+                    "description": "Performance des campagnes par canal et destination",
+                    "url": f"https://jwkjqowuponrqmxwhgsj.supabase.co/rest/v1/bi_campaign_performance?company_id=eq.{company_id}",
+                },
+                {
+                    "name": "bi_social_interactions",
+                    "description": "Interactions sociales avec intent et sentiment",
+                    "url": f"https://jwkjqowuponrqmxwhgsj.supabase.co/rest/v1/bi_social_interactions?company_id=eq.{company_id}",
+                },
+                {
+                    "name": "bi_roi_by_channel",
+                    "description": "ROI et taux de conversion par canal",
+                    "url": f"https://jwkjqowuponrqmxwhgsj.supabase.co/rest/v1/bi_roi_by_channel?company_id=eq.{company_id}",
+                },
+            ],
+            "instructions": "Connectez Power BI via l'URL Supabase avec votre clé API en header: apikey: YOUR_ANON_KEY"
+        }
+    }

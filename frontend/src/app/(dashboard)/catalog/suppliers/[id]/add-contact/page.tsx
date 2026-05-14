@@ -33,7 +33,7 @@ export default function AddContactPage() {
     setLoading(true);
     setError("");
     try {
-      const supRes = await fetch(`http://localhost:8002/catalog/suppliers/${supplierId}`);
+      const supRes = await fetch(`http://localhost:8001/catalog/suppliers/${supplierId}`);
       if (!supRes.ok) throw new Error("Fournisseur introuvable");
       const supData = await supRes.json();
       setSupplier(supData);
@@ -56,7 +56,7 @@ export default function AddContactPage() {
     setError("");
 
     try {
-      const res = await fetch(`http://localhost:8002/catalog/suppliers/${supplierId}/contacts`, {
+      const res = await fetch(`http://localhost:8001/catalog/suppliers/${supplierId}/contacts`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

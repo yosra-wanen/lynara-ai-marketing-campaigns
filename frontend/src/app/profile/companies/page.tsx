@@ -278,13 +278,20 @@ export default function ProfileCompaniesPage() {
   const renderContent = () => {
     if (loading) return (
       <div className="flex items-center justify-center py-20">
-        <div className="spinner-border" role="status" style={{ color: '#7C4DFF' }} />
+        <div className="w-10 h-10 rounded-full border-4 border-[#7C4DFF]/20 border-t-[#7C4DFF] animate-spin" />
       </div>
     );
 
     if (filtered.length === 0) return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <p className="text-gray-500 dark:text-gray-400">{translator.translate('profile', 'noCompanies')}</p>
+      <div className="flex flex-col items-center justify-center py-24 gap-5">
+        <div className="w-20 h-20 rounded-3xl flex items-center justify-center"
+          style={{ background: 'linear-gradient(135deg, #6D3FEB15, #A079FF25)' }}>
+          <Building2 size={32} className="text-[#7C4DFF]" />
+        </div>
+        <div className="text-center space-y-1">
+          <p className="font-semibold text-gray-900 dark:text-white">Aucune entreprise trouvée</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{translator.translate('profile', 'noCompanies')}</p>
+        </div>
         <Link href="/create-enterprise">
           <Button variant="primary" leftIcon={<Plus size={18} />}>{translator.translate('profile', 'addCompany')}</Button>
         </Link>
@@ -298,14 +305,15 @@ export default function ProfileCompaniesPage() {
           const deleteAllowed = canDelete(company.role);
 
           return (
-            <li key={company.company_id} className="relative flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6 p-6 rounded-2xl border border-gray-100 dark:border-[#262626] bg-gray-50/50 dark:bg-[#121212] hover:border-gray-200 dark:hover:border-[#333] transition-colors overflow-visible">
+            <li key={company.company_id} className="relative flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6 p-6 rounded-2xl border border-gray-100 dark:border-[#262626] bg-white dark:bg-[#111] hover:border-[#7C4DFF]/40 dark:hover:border-[#7C4DFF]/40 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 overflow-visible">
               <div className="flex items-center gap-5 min-w-0 flex-1">
-                <Avatar
-                  src={company.logo_url || undefined}
-                  fallback={company.legal_name.slice(0, 2).toUpperCase()}
-                  size="lg"
-                  className="shrink-0 bg-[#E8E0FF] dark:bg-[#A079FF]/25 text-[#7C4DFF] dark:text-[#B394FF] font-bold"
-                />
+                <div className="shrink-0 w-14 h-14 rounded-2xl overflow-hidden flex items-center justify-center font-bold text-white text-lg"
+                  style={company.logo_url ? undefined : { background: `linear-gradient(135deg, ${['#6D3FEB','#E91E8C','#F97316','#10B981','#0EA5E9'][company.legal_name.charCodeAt(0) % 5]} 0%, ${['#A079FF','#F06292','#FCD34D','#34D399','#38BDF8'][company.legal_name.charCodeAt(0) % 5]} 100%)` }}>
+                  {company.logo_url
+                    ? <img src={company.logo_url} alt="" className="w-full h-full object-cover" />
+                    : company.legal_name.slice(0, 2).toUpperCase()
+                  }
+                </div>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2.5">
                     <h2 className="font-bold text-gray-900 dark:text-white truncate">{company.legal_name}</h2>
@@ -656,34 +664,48 @@ export default function ProfileCompaniesPage() {
 
       {/* Delete modal */}
       {deleteModalOpen && companyToDelete && (
-        <>
-          <div className="modal-backdrop fade show" onClick={closeDeleteModal} />
-          <div className="modal fade show d-block" tabIndex={-1}>
-            <div className="modal-dialog modal-dialog-centered">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title fw-bold">{translator.translate('profile', 'deleteCompany')}</h5>
-                  <button type="button" className="btn-close" onClick={closeDeleteModal} />
-                </div>
-                <div className="modal-body">
-                  <p className="text-muted">
-                    {translator.translate('profile', 'deleteConfirm')}{' '}
-                    <span className="fw-semibold text-dark">{companyToDelete.legal_name}</span> ?
-                  </p>
-                  <p className="text-danger small mt-2">{translator.translate('profile', 'deleteWarning')}</p>
-                </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-outline-secondary" onClick={closeDeleteModal}>
-                    {translator.translate('profile', 'cancel')}
-                  </button>
-                  <button type="button" className="btn btn-danger" onClick={confirmDelete} disabled={deleting}>
-                    {deleting ? translator.translate('profile', 'deleting') : translator.translate('profile', 'delete')}
-                  </button>
-                </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeDeleteModal} />
+          <div className="relative bg-white dark:bg-[#1a1a1a] rounded-2xl w-full max-w-sm shadow-2xl p-6 space-y-5">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+                <Trash2 size={22} className="text-red-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 dark:text-white">{translator.translate('profile', 'deleteCompany')}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Cette action est irréversible.</p>
               </div>
             </div>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              {translator.translate('profile', 'deleteConfirm')}{' '}
+              <span className="font-semibold text-gray-900 dark:text-white">{companyToDelete.legal_name}</span> ?
+            </p>
+            <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl px-3 py-2">
+              {translator.translate('profile', 'deleteWarning')}
+            </p>
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={closeDeleteModal}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-gray-200 dark:border-[#333] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#262626] transition-colors"
+              >
+                {translator.translate('profile', 'cancel')}
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {deleting && (
+                  <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                )}
+                {deleting ? translator.translate('profile', 'deleting') : translator.translate('profile', 'delete')}
+              </button>
+            </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

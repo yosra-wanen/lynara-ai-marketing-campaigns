@@ -9,7 +9,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { SectionSwitcher } from '@/components/ui/SectionSwitcher';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/providers/I18nProvider';
-import { locales, localeNames, type Locale } from '@/lib/i18n';
+import { locales, localeNames } from '@/lib/i18n';
 
 export interface EnterpriseItem {
   id: string;
@@ -29,6 +29,7 @@ export interface HeaderProps {
   actionButton?: React.ReactNode;
   enterprises?: EnterpriseItem[];
   currentEnterpriseId?: string;
+  onSwitchEnterprise?: (enterpriseId: string) => void;
   onLogout?: () => void;
   className?: string;
 }
@@ -49,6 +50,7 @@ export function Header({
   actionButton,
   enterprises = defaultEnterprises,
   currentEnterpriseId,
+  onSwitchEnterprise,
   onLogout,
   className,
 }: HeaderProps) {
@@ -59,9 +61,13 @@ export function Header({
   const enterpriseRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  const currentId = currentEnterpriseId ?? enterprises[0]?.id;
+  const [localActiveId, setLocalActiveId] = useState<string | undefined>(undefined);
+
+  // Reset optimistic state when the prop catches up
+  useEffect(() => { setLocalActiveId(undefined); }, [currentEnterpriseId]);
+
+  const currentId = localActiveId ?? currentEnterpriseId ?? enterprises[0]?.id;
   const currentEnterprise = enterprises.find((e) => e.id === currentId) ?? enterprises[0];
-  const displayedEnterprises = enterprises.slice(0, 3);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -104,35 +110,42 @@ export function Header({
               <p className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                 {t('header', 'enterprises')}
               </p>
-              {displayedEnterprises.map((ent, i) => (
-                <Link
-                  key={ent.id}
-                  href="/dashboard"
-                  onClick={() => setEnterpriseOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-all duration-200 animate-dropdown-item opacity-0 [animation-fill-mode:forwards]"
-                  style={{ animationDelay: `${40 + i * 35}ms` }}
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#E8E0FF] dark:bg-[#A079FF]/20 text-[#7C4DFF] dark:text-[#B394FF]">
-                    <Building2 size={18} />
-                  </div>
-                  <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{ent.name}</span>
-                </Link>
-              ))}
-              {enterprises.length > 3 && (
-                <Link
-                  href="/profile/companies"
-                  onClick={() => setEnterpriseOpen(false)}
-                  className="mx-2 mt-1 flex items-center gap-2 rounded-xl px-3 py-2 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-all duration-200 animate-dropdown-item opacity-0 [animation-fill-mode:forwards]"
-                  style={{ animationDelay: `${40 + displayedEnterprises.length * 35}ms` }}
-                >
-                  {t('header', 'viewAllEnterprises')}
-                </Link>
-              )}
+              <div className="max-h-48 overflow-y-auto">
+                {enterprises.map((ent: EnterpriseItem, i: number) => {
+                  const isActive = ent.id === currentId;
+                  return (
+                    <button
+                      key={ent.id}
+                      type="button"
+                      onClick={() => {
+                        setLocalActiveId(ent.id);
+                        setEnterpriseOpen(false);
+                        onSwitchEnterprise?.(ent.id);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-all duration-200"
+                      style={{ animation: `dropdown-item 0.2s ease-out both ${40 + i * 35}ms` }}
+                    >
+                      <div className={cn(
+                        'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
+                        isActive
+                          ? 'bg-[#7C4DFF] text-white'
+                          : 'bg-[#E8E0FF] dark:bg-[#A079FF]/20 text-[#7C4DFF] dark:text-[#B394FF]'
+                      )}>
+                        <Building2 size={18} />
+                      </div>
+                      <span className={cn(
+                        'text-sm font-medium truncate',
+                        isActive ? 'text-[#7C4DFF] dark:text-[#A079FF]' : 'text-gray-900 dark:text-white'
+                      )}>{ent.name}</span>
+                      {isActive && <span className="ml-auto w-2 h-2 rounded-full bg-[#7C4DFF] shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
               <Link
                 href="/create-enterprise"
                 onClick={() => setEnterpriseOpen(false)}
-                className="mx-2 mt-2 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[#7C4DFF] dark:text-[#B394FF] hover:bg-[#E8E0FF] dark:hover:bg-[#A079FF]/20 transition-all duration-200 animate-dropdown-item opacity-0 [animation-fill-mode:forwards]"
-                style={{ animationDelay: `${40 + enterprises.length * 35}ms` }}
+                className="mx-2 mt-2 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[#7C4DFF] dark:text-[#B394FF] hover:bg-[#E8E0FF] dark:hover:bg-[#A079FF]/20 transition-colors"
               >
                 <Plus size={18} className="shrink-0" />
                 {t('header', 'createEnterprise')}
@@ -179,57 +192,13 @@ export function Header({
               className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-gray-100 dark:border-[#262626] bg-white dark:bg-[#121212] py-3 z-50 animate-dropdown-in origin-top-right"
               style={{ boxShadow: '0 25px 50px -12px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.02)' }}
             >
-              <div className="px-4 py-2 border-b border-gray-100 dark:border-[#262626] sm:hidden animate-dropdown-item opacity-0 [animation-fill-mode:forwards]" style={{ animationDelay: '20ms' }}>
+              <div className="px-4 py-2 border-b border-gray-100 dark:border-[#262626] sm:hidden">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{userName}</p>
                 {userId && <p className="text-xs text-gray-400 dark:text-gray-500">N° {userId}</p>}
               </div>
 
-              {/* Enterprises - contenu plateforme (canaux / espaces) */}
-              <div className="px-2 py-3">
-                <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                  {t('header', 'enterprises')}
-                </p>
-                <ul className="space-y-0.5 max-h-40 overflow-y-auto">
-                  {displayedEnterprises.map((ent, i) => (
-                    <li key={ent.id}>
-                      <Link
-                        href="/dashboard"
-                        onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-all duration-200 animate-dropdown-item opacity-0 [animation-fill-mode:forwards]"
-                        style={{ animationDelay: `${50 + i * 35}ms` }}
-                      >
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#E8E0FF] dark:bg-[#A079FF]/20 text-[#7C4DFF] dark:text-[#B394FF]">
-                          <Building2 size={18} />
-                        </div>
-                        <span className="text-sm text-gray-900 dark:text-white truncate">{ent.name}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-                {enterprises.length > 3 && (
-                  <Link
-                    href="/profile/companies"
-                    onClick={() => setProfileOpen(false)}
-                    className="mx-1 mt-2 flex items-center justify-center rounded-xl px-3 py-2 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-all animate-dropdown-item opacity-0 [animation-fill-mode:forwards]"
-                    style={{ animationDelay: `${50 + displayedEnterprises.length * 35}ms` }}
-                  >
-                    {t('header', 'viewAllEnterprises')}
-                  </Link>
-                )}
-                <Link
-                  href="/create-enterprise"
-                  onClick={() => setProfileOpen(false)}
-                  className="mx-1 mt-2 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[#7C4DFF] dark:text-[#B394FF] hover:bg-[#E8E0FF] dark:hover:bg-[#A079FF]/20 transition-all animate-dropdown-item opacity-0 [animation-fill-mode:forwards]"
-                  style={{ animationDelay: `${50 + enterprises.length * 35}ms` }}
-                >
-                  <Plus size={18} />
-                  {t('header', 'createEnterprise')}
-                </Link>
-              </div>
-
-              <div className="border-t border-gray-100 dark:border-[#262626] my-2" />
               <div className="px-2 space-y-1">
-                <div className="flex items-center justify-between rounded-xl px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-colors animate-dropdown-item opacity-0 [animation-fill-mode:forwards]" style={{ animationDelay: `${120}ms` }}>
+                <div className="flex items-center justify-between rounded-xl px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-colors">
                   <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
                     <Sun size={14} className="opacity-70" />
                     {t('header', 'theme')}
@@ -243,7 +212,7 @@ export function Header({
                     {isDark ? <Sun size={16} /> : <Moon size={16} />}
                   </button>
                 </div>
-                <div className="flex items-center justify-between rounded-xl px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-colors animate-dropdown-item opacity-0 [animation-fill-mode:forwards]" style={{ animationDelay: '160ms' }}>
+                <div className="flex items-center justify-between rounded-xl px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-colors">
                   <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
                     <Globe size={14} className="opacity-70" />
                     {t('header', 'language')}
@@ -273,42 +242,28 @@ export function Header({
                 <Link
                   href="/profile"
                   onClick={() => setProfileOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-all animate-dropdown-item opacity-0 [animation-fill-mode:forwards]"
-                  style={{ animationDelay: '200ms' }}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-colors"
+                  style={{ animation: 'dropdown-item 0.2s ease-out both 200ms' }}
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gray-100 dark:bg-[#1A1A1A]">
                     <User size={18} className="text-gray-600 dark:text-gray-400" />
                   </div>
                   {t('header', 'myProfile')}
                 </Link>
-                {onLogout ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfileOpen(false);
-                      onLogout();
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-all animate-dropdown-item opacity-0 [animation-fill-mode:forwards]"
-                    style={{ animationDelay: '240ms' }}
-                  >
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gray-100 dark:bg-[#1A1A1A]">
-                      <LogOut size={18} className="text-gray-600 dark:text-gray-400" />
-                    </div>
-                    {t('header', 'logout')}
-                  </button>
-                ) : (
-                  <Link
-                    href="/login"
-                    onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-all animate-dropdown-item opacity-0 [animation-fill-mode:forwards]"
-                    style={{ animationDelay: '240ms' }}
-                  >
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gray-100 dark:bg-[#1A1A1A]">
-                      <LogOut size={18} className="text-gray-600 dark:text-gray-400" />
-                    </div>
-                    {t('header', 'logout')}
-                  </Link>
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfileOpen(false);
+                    onLogout?.();
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-colors"
+                  style={{ animation: 'dropdown-item 0.2s ease-out both 240ms' }}
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gray-100 dark:bg-[#1A1A1A]">
+                    <LogOut size={18} className="text-gray-600 dark:text-gray-400" />
+                  </div>
+                  {t('header', 'logout')}
+                </button>
               </div>
             </div>
           )}

@@ -2,12 +2,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { useAuth } from '@/hooks/useAuth'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-const COMPANY_ID = '11111111-1111-1111-1111-111111111111'
-const AI_URL = 'http://localhost:8000'
+const AI_URL = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8000'
 
 export default function NouveauLeadPage() {
+  const { companyId: COMPANY_ID } = useAuth()
   const [activeTab, setActiveTab] = useState<'manual' | 'csv'>('manual')
   const [formData, setFormData] = useState({
     customer_name: '',

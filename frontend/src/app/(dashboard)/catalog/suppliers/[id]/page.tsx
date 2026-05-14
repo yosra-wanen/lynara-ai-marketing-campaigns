@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
-const API = "http://localhost:8002";
+const API = "http://localhost:8001";
 
 type Supplier = { id: string; name: string; description?: string; created_at?: string };
 type Contact  = { id: string; name: string; email?: string; phone?: string };

@@ -147,3 +147,55 @@ body::before {
 }
 .delete-allowed  { @apply text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer; }
 .delete-disallowed { @apply text-gray-300 dark:text-gray-600 cursor-not-allowed; }
+
+/* ── Global micro-interactions ──────────────────────────────────────────── */
+
+/* Page fade-in on load */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+main, [role="main"] {
+  animation: page-enter 0.35s ease-out both;
+}
+
+/* Smooth button press feel for interactive elements */
+button:not(:disabled),
+a[role="button"] {
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+}
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+/* Card lift on hover */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -6px rgba(0,0,0,0.10);
+}
+
+/* Accent focus ring consistent across all inputs */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #7C4DFF;
+  outline-offset: 2px;
+}
+
+/* Shimmer loading skeleton */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.dark .skeleton {
+  background: linear-gradient(90deg, #1a1a1a 25%, #262626 50%, #1a1a1a 75%);
+  background-size: 800px 100%;
+}

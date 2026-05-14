@@ -1,9 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
-export type SectionType = 'crm' | 'catalogue';
+export type SectionType = 'crm' | 'catalogue' | 'instagram';
 
 interface SectionContextType {
   activeSection: SectionType;
@@ -13,13 +13,20 @@ interface SectionContextType {
 const SectionContext = createContext<SectionContextType | undefined>(undefined);
 
 export function SectionProvider({ children }: { children: React.ReactNode }) {
-  const [activeSection, setActiveSection] = useState<SectionType>('crm');
   const pathname = usePathname();
 
-  // Simple heuristic: if path contains 'products' or 'inventory' or 'catalogue', switch to catalogue
-  // This is optional if we want URL persistence. For now, manual switch is fine or path-based.
-  // Let's stick to manual + default based on route if needed.
-  
+  function sectionFromPath(path: string): SectionType {
+    if (path.startsWith('/instagram')) return 'instagram';
+    if (path.startsWith('/catalog'))   return 'catalogue';
+    return 'crm';
+  }
+
+  const [activeSection, setActiveSection] = useState<SectionType>(() => sectionFromPath(pathname));
+
+  useEffect(() => {
+    setActiveSection(sectionFromPath(pathname));
+  }, [pathname]);
+
   return (
     <SectionContext.Provider value={{ activeSection, setActiveSection }}>
       {children}

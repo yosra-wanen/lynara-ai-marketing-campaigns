@@ -1,9 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
+import { useAuth } from '@/hooks/useAuth'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-const COMPANY_ID = '11111111-1111-1111-1111-111111111111'
 const FETCH_TIMEOUT_MS = 15000
 
 function fetchWithTimeout(url: string, options?: RequestInit): Promise<Response> {
@@ -27,6 +27,7 @@ async function fetchWithRetry(url: string, options?: RequestInit, retries = 2): 
 }
 
 export default function DeduplicationPage() {
+  const { companyId: COMPANY_ID } = useAuth()
   const [duplicates, setDuplicates] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)

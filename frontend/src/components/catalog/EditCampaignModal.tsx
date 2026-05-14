@@ -88,7 +88,7 @@ export default function EditCampaignModal({ campagne, onClose, onUpdated, compan
     fetchMetadataAndData();
   }, []);
 
-  const API_BASE = "http://localhost:8002";
+  const API_BASE = "http://localhost:8001";
 
   useEffect(() => {
     if (itemTypeId && itemTypes.length > 0) {

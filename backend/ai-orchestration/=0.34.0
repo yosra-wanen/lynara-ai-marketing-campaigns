@@ -1,0 +1,29 @@
+Collecting replicate
+  Downloading replicate-1.0.7-py3-none-any.whl.metadata (29 kB)
+Collecting httpx<1,>=0.21.0 (from replicate)
+  Using cached httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+Collecting packaging (from replicate)
+  Downloading packaging-26.2-py3-none-any.whl.metadata (3.5 kB)
+Requirement already satisfied: pydantic>1.10.7 in C:\Users\MSI\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages (from replicate) (2.12.5)
+Requirement already satisfied: typing_extensions>=4.5.0 in C:\Users\MSI\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages (from replicate) (4.15.0)
+Requirement already satisfied: anyio in C:\Users\MSI\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages (from httpx<1,>=0.21.0->replicate) (4.12.1)
+Collecting certifi (from httpx<1,>=0.21.0->replicate)
+  Downloading certifi-2026.4.22-py3-none-any.whl.metadata (2.5 kB)
+Collecting httpcore==1.* (from httpx<1,>=0.21.0->replicate)
+  Using cached httpcore-1.0.9-py3-none-any.whl.metadata (21 kB)
+Requirement already satisfied: idna in C:\Users\MSI\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages (from httpx<1,>=0.21.0->replicate) (3.11)
+Requirement already satisfied: h11>=0.16 in C:\Users\MSI\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages (from httpcore==1.*->httpx<1,>=0.21.0->replicate) (0.16.0)
+Requirement already satisfied: annotated-types>=0.6.0 in C:\Users\MSI\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages (from pydantic>1.10.7->replicate) (0.7.0)
+Requirement already satisfied: pydantic-core==2.41.5 in C:\Users\MSI\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages (from pydantic>1.10.7->replicate) (2.41.5)
+Requirement already satisfied: typing-inspection>=0.4.2 in C:\Users\MSI\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages (from pydantic>1.10.7->replicate) (0.4.2)
+Downloading replicate-1.0.7-py3-none-any.whl (48 kB)
+Using cached httpx-0.28.1-py3-none-any.whl (73 kB)
+Using cached httpcore-1.0.9-py3-none-any.whl (78 kB)
+Downloading certifi-2026.4.22-py3-none-any.whl (135 kB)
+Downloading packaging-26.2-py3-none-any.whl (100 kB)
+Installing collected packages: packaging, certifi, httpcore, httpx, replicate
+
+Successfully installed certifi-2026.4.22 httpcore-1.0.9 httpx-0.28.1 packaging-26.2 replicate-1.0.7
+
+[notice] A new release of pip is available: 26.0.1 -> 26.1
+[notice] To update, run: C:\Users\MSI\AppData\Local\Python\pythoncore-3.14-64\python.exe -m pip install --upgrade pip

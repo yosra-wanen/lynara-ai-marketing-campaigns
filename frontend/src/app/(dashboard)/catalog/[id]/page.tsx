@@ -38,7 +38,7 @@ interface Conditions {
 
 type Tab = "infos" | "variantes" | "options" | "cible" | "conditions" | "fournisseurs";
 
-const API = "http://localhost:8002";
+const API = "http://localhost:8001";
 
 const PROFILE_ICONS: Record<string, string> = {
   "Famille":             "👨‍👩‍👧",

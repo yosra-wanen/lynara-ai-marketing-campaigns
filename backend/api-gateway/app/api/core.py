@@ -3,10 +3,11 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 import httpx
+import os
 
 router = APIRouter()
 
-CORE_SERVICE_URL = "http://localhost:8001"
+CORE_SERVICE_URL = os.getenv("CORE_SERVICE_URL", "http://localhost:8001")
 
 
 @router.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])

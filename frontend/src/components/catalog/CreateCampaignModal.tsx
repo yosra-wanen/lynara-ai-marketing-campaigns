@@ -7,7 +7,7 @@ import { TagMultiSelect } from "./TagMultiSelect";
 import { TypeSelector } from "./TypeSelector";
 import { CategoryTree, buildCategoryTree } from "./CategoryTree";
 
-const API_BASE = "http://localhost:8002";
+const API_BASE = "http://localhost:8001";
 
 interface Props { onClose: () => void; onCreated: () => void; companyId: string; }
 type Tab = "general" | "commerce" | "partners" | "storytelling" | "targeting" | "media" | "settings";
@@ -82,7 +82,7 @@ export default function CreateCampaignModal({ onClose, onCreated, companyId: COM
 
   useEffect(() => {
     if (itemTypeId) {
-      fetch(`http://localhost:8002/catalog/item-types/${itemTypeId}/attribute-schema`)
+      fetch(`http://localhost:8001/catalog/item-types/${itemTypeId}/attribute-schema`)
         .then(r => r.json()).then(d => setTypeSchema(Array.isArray(d) ? d : [])).catch(() => setTypeSchema([]));
     } else {
 
@@ -90,7 +90,7 @@ export default function CreateCampaignModal({ onClose, onCreated, companyId: COM
     }
   }, [itemTypeId]);
 
-  const API_BASE = "http://localhost:8002";
+  const API_BASE = "http://localhost:8001";
 
   async function fetchMetadata() {
     try {

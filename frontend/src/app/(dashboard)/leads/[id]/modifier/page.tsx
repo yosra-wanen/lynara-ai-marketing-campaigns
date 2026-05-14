@@ -2,11 +2,12 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { useAuth } from '@/hooks/useAuth'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-const COMPANY_ID = '11111111-1111-1111-1111-111111111111'
 
 export default function ModifierLeadPage() {
+  const { companyId: COMPANY_ID } = useAuth()
   const { id } = useParams()
   const router = useRouter()
   const [loading, setLoading] = useState(true)

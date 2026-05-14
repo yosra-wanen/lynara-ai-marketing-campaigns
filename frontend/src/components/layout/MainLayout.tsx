@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { Header, type EnterpriseItem } from './Header';
 import { cn } from '@/lib/utils';
 import { SectionProvider } from '@/providers/SectionProvider';
 import { SupabaseService } from '@/app/services/supabase.service';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface MainLayoutProps {
   children: React.ReactNode;
@@ -16,11 +17,6 @@ export interface MainLayoutProps {
   className?: string;
 }
 
-type CurrentUser = {
-  id: string;
-  full_name?: string | null;
-};
-
 export function MainLayout({
   children,
   headerTitle,
@@ -29,53 +25,18 @@ export function MainLayout({
   className,
 }: MainLayoutProps) {
   const router = useRouter();
-  const [user, setUser] = useState<CurrentUser | null>(null);
-  const [enterprises, setEnterprises] = useState<EnterpriseItem[]>([]);
+  const { userId, userName, enterprises: authEnterprises, companyId } = useAuth();
 
-  useEffect(() => {
-    // Fetch current user profile
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile/me`, {
-      method: 'GET',
-      credentials: 'include',
-    })
-      .then(async (res) => {
-        const body = await res.json();
-        if (!res.ok) throw body.detail;
-        return body;
-      })
-      .then((response) => {
-        if (response?.data) {
-          setUser({
-            id: response.data.profile_id ?? response.data.id ?? '',
-            full_name: response.data.full_name ?? response.data.name ?? '',
-          });
-        }
-      })
-      .catch(() => {
-        // si non authentifié, on laisse les valeurs par défaut
-      });
+  const enterprises: EnterpriseItem[] = authEnterprises.map((e) => ({
+    id: e.id,
+    name: e.name,
+    role: e.role,
+  }));
 
-    // Fetch companies for the user
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/`, {
-      method: 'GET',
-      credentials: 'include',
-    })
-      .then(async (res) => {
-        const body = await res.json();
-        if (!res.ok) throw body.detail;
-        return body;
-      })
-      .then((response) => {
-        const companies = (response?.data || []).map((c: any) => ({
-          id: c.company_id ?? c.id,
-          name: c.legal_name ?? c.name,
-        })) as EnterpriseItem[];
-        setEnterprises(companies);
-      })
-      .catch(() => {
-        // on garde la liste par défaut si erreur
-      });
-  }, []);
+  async function handleSwitchEnterprise(enterpriseId: string) {
+    await supabase.auth.updateUser({ data: { active_company_id: enterpriseId } });
+    router.refresh();
+  }
 
   async function handleLogout() {
     try {
@@ -100,9 +61,11 @@ export function MainLayout({
             title={headerTitle}
             subtitle={headerSubtitle}
             actionButton={headerAction}
-            userName={user?.full_name || 'Utilisateur'}
-            userId={user?.id}
+            userName={userName || 'Utilisateur'}
+            userId={userId ?? undefined}
             enterprises={enterprises}
+            currentEnterpriseId={companyId ?? undefined}
+            onSwitchEnterprise={handleSwitchEnterprise}
             onLogout={handleLogout}
           />
           <main className={cn('p-6', className)}>{children}</main>

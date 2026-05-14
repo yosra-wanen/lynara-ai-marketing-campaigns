@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useSection } from '@/providers/SectionProvider';
 import { cn } from '@/lib/utils';
-import { LayoutGrid, ShoppingBag } from 'lucide-react';
+import { LayoutGrid, ShoppingBag, Instagram } from 'lucide-react';
 
 export function SectionSwitcher() {
   const { activeSection, setActiveSection } = useSection();
@@ -38,6 +38,21 @@ export function SectionSwitcher() {
       >
         <ShoppingBag size={16} />
         <span>Catalogue</span>
+      </button>
+      <button
+        onClick={() => {
+          setActiveSection('instagram');
+          router.push('/instagram');
+        }}
+        className={cn(
+          'flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
+          activeSection === 'instagram'
+            ? 'bg-white text-[#7C4DFF] shadow-sm dark:bg-[#121212] dark:text-[#B394FF] ring-1 ring-black/5 dark:ring-white/10'
+            : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
+        )}
+      >
+        <Instagram size={16} />
+        <span>Instagram</span>
       </button>
     </div>
   );

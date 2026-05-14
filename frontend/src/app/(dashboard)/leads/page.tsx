@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { useAuth } from '@/hooks/useAuth'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-const COMPANY_ID = '11111111-1111-1111-1111-111111111111'
 const FETCH_TIMEOUT_MS = 15000
 
 function fetchWithTimeout(url: string, options?: RequestInit): Promise<Response> {
@@ -14,6 +14,7 @@ function fetchWithTimeout(url: string, options?: RequestInit): Promise<Response>
 }
 
 export default function LeadsPage() {
+  const { companyId: COMPANY_ID } = useAuth()
   const [leads, setLeads] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')

@@ -12,10 +12,11 @@ export async function middleware(req: NextRequest) {
     const token    = req.cookies.get('access_token')?.value
     const pathname = req.nextUrl.pathname
     let user       = null
+    let supabase   = null
 
     if (token) {
         try {
-            const supabase = createServerClient(
+            supabase = createServerClient(
                 process.env.NEXT_PUBLIC_SUPABASE_URL!,
                 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
                 {
@@ -36,6 +37,7 @@ export async function middleware(req: NextRequest) {
     }
 
     const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route))
+    const isAdminRoute  = pathname.startsWith('/admin')
 
     if (user === null && !isPublicRoute) {
         return NextResponse.redirect(new URL('/login', req.url))
@@ -43,6 +45,23 @@ export async function middleware(req: NextRequest) {
 
     if (user !== null && isPublicRoute) {
         return NextResponse.redirect(new URL('/profile/companies', req.url))
+    }
+
+    if (user !== null && isAdminRoute && supabase) {
+        try {
+            const { data: profile } = await supabase
+                .schema('core')
+                .from('profiles')
+                .select('is_admin')
+                .eq('user_id', user.id)
+                .single()
+
+            if (!profile?.is_admin) {
+                return NextResponse.redirect(new URL('/dashboard', req.url))
+            }
+        } catch {
+            return NextResponse.redirect(new URL('/dashboard', req.url))
+        }
     }
 
     return NextResponse.next()

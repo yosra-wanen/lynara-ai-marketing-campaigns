@@ -21,5 +21,11 @@
   "collecte": "Collecte Web IA",
   "segments": "Segments",
   "deduplication": "Déduplication",
-  "quotas": "Quotas & Gouvernance"
-  }
+  "quotas": "Quotas & Gouvernance",
+  "instagram_overview": "Vue d'ensemble",
+  "instagram_studio": "Studio",
+  "instagram_calendar": "Calendrier",
+  "instagram_analytics": "Analytiques",
+  "instagram_recommendations": "Recommandations IA",
+  "instagram_settings": "Comptes"
+}

@@ -1,12 +1,13 @@
 'use client'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
+import { useAuth } from '@/hooks/useAuth'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-const AI_URL = 'http://localhost:8000'
-const COMPANY_ID = '11111111-1111-1111-1111-111111111111'
+const AI_URL = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8000'
 
 export default function QuotasPage() {
+  const { companyId: COMPANY_ID } = useAuth()
   const [stats, setStats] = useState({
     searches_used: 0,
     searches_limit: 100,

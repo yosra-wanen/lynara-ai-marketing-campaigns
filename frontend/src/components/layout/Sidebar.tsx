@@ -24,6 +24,10 @@ import {
   Sparkles,
   Globe,
   ShieldCheck,
+  Instagram,
+  PenSquare,
+  CalendarDays,
+  LineChart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/providers/I18nProvider';
@@ -78,6 +82,18 @@ const catalogueExploreItems: NavItem[] = [
   { href: '/settings', labelKey: 'settings', icon: <Settings size={20} /> },
 ];
 
+const instagramMenuItems: NavItem[] = [
+  { href: '/instagram', labelKey: 'instagram_overview', icon: <Instagram size={20} /> },
+  { href: '/instagram/studio', labelKey: 'instagram_studio', icon: <PenSquare size={20} /> },
+  { href: '/instagram/calendar', labelKey: 'instagram_calendar', icon: <CalendarDays size={20} /> },
+];
+
+const instagramExploreItems: NavItem[] = [
+  { href: '/instagram/analytics', labelKey: 'instagram_analytics', icon: <LineChart size={20} /> },
+  { href: '/instagram/recommendations', labelKey: 'instagram_recommendations', icon: <Sparkles size={20} /> },
+  { href: '/instagram/settings', labelKey: 'instagram_settings', icon: <Settings size={20} /> },
+];
+
 export interface SidebarProps {
   appName?: string;
   projectVersion?: string;
@@ -93,8 +109,14 @@ export function Sidebar({
   const { t } = useTranslation();
   const { activeSection } = useSection();
 
-  const menuItems = activeSection === 'crm' ? crmMenuItems : catalogueMenuItems;
-  const exploreItems = activeSection === 'crm' ? crmExploreItems : catalogueExploreItems;
+  const menuItems =
+    activeSection === 'crm' ? crmMenuItems :
+    activeSection === 'instagram' ? instagramMenuItems :
+    catalogueMenuItems;
+  const exploreItems =
+    activeSection === 'crm' ? crmExploreItems :
+    activeSection === 'instagram' ? instagramExploreItems :
+    catalogueExploreItems;
 
   return (
     <aside
@@ -126,8 +148,8 @@ export function Sidebar({
         <SidebarSection titleKey="menu" items={menuItems} pathname={pathname} activeSection={activeSection} />
         <SidebarSection titleKey="explore" items={exploreItems} pathname={pathname} activeSection={activeSection} />
         {activeSection === 'crm' && (
-      <SidebarSection titleKey="leads" items={crmLeadsItems} pathname={pathname} activeSection={activeSection} />
-)}
+          <SidebarSection titleKey="leads" items={crmLeadsItems} pathname={pathname} activeSection={activeSection} />
+        )}
       </nav>
 
       {/* Footer - Logout only; profile is in header avatar menu */}

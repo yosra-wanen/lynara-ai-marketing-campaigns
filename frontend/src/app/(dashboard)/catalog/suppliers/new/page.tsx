@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Building2, Check } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
-const API = "http://localhost:8002";
+const API = "http://localhost:8001";
 
 export default function NewSupplierPage() {
   const router = useRouter();

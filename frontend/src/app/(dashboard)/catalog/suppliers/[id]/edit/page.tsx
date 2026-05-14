@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Building2, Check } from "lucide-react";
 
-const API = "http://localhost:8002";
+const API = "http://localhost:8001";
 
 export default function EditSupplierPage() {
   const params     = useParams();

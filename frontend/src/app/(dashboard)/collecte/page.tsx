@@ -1,12 +1,13 @@
 'use client'
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
+import { useAuth } from '@/hooks/useAuth'
 
-const AI_URL = 'http://localhost:8000'
+const AI_URL = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8000'
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-const COMPANY_ID = '11111111-1111-1111-1111-111111111111'
 
 export default function CollectePage() {
+  const { companyId: COMPANY_ID } = useAuth()
   const [activeTab, setActiveTab] = useState<'search' | 'results' | 'history' | 'templates'>('search')
   const [loading, setLoading] = useState(false)
   const [loadingStep, setLoadingStep] = useState('')

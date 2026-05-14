@@ -5,8 +5,9 @@
 fastapi>=0.115.0
 uvicorn[standard]>=0.32.0
 
-# Supabase (Auth, DB)
+# Supabase (Auth, DB) + HTTP client for direct REST calls
 supabase>=2.0.0
+httpx>=0.25.0
 
 # OCR & Vision
 pytesseract>=0.3.10
@@ -17,3 +18,4 @@ pydantic>=2.0.0
 pydantic-settings>=2.0.0
 python-dotenv>=1.0.0
 python-multipart>=0.0.9
+loguru>=0.7.0

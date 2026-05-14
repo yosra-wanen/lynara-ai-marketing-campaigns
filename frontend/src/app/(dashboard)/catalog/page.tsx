@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-const API = "http://localhost:8002";
+const API = "http://localhost:8001";
 
 // ─────────────────────────────────────────────
 // TYPES

@@ -8,7 +8,7 @@ import {
   ChevronLeft, Package2,
 } from "lucide-react";
 
-const API = "http://localhost:8002";
+const API = "http://localhost:8001";
 
 type Section = "categories" | "tags" | "types" | "attributes" | "collections";
 

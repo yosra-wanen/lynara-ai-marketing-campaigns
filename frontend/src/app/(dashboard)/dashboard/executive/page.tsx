@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 
-const COMPANY_ID = '1c7e1651-d68a-4725-abd7-ecf63719a70d'
+const COMPANY_ID = '4f8edee8-9ec2-47d8-be24-180854da63df'
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
 export default function ExecutiveDashboard() {
@@ -80,7 +80,7 @@ export default function ExecutiveDashboard() {
       <div>
         <h1 className="text-2xl font-bold text-[#111827]">Tableau de bord Exécutif</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Vue d'ensemble des performances — Tunisie Booking
+          Vue d'ensemble des performances — Traveltodo
         </p>
       </div>
 

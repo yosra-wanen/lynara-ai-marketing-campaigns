@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 
-const COMPANY_ID = '1c7e1651-d68a-4725-abd7-ecf63719a70d'
+const COMPANY_ID = '4f8edee8-9ec2-47d8-be24-180854da63df'
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
 const CHANNEL_COLORS: Record<string, string> = {
@@ -58,7 +58,7 @@ export default function CampaignsPage() {
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-[#111827]">Performance des Campagnes</h1>
-        <p className="text-sm text-gray-500 mt-1">Analyse des campagnes marketing multicanales — Tunisie Booking</p>
+        <p className="text-sm text-gray-500 mt-1">Analyse des campagnes marketing multicanales — Traveltodo</p>
       </div>
 
       {/* KPI Cards */}
